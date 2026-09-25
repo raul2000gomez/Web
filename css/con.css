@@ -66,7 +66,13 @@ body {
 }
 
 .vista { display: none; }
-.vista.activa { display: block; animation: subir .45s var(--suave) backwards; }
+.vista.activa { display: block; animation: vista-aparecer .4s ease-out backwards; }
+
+/* Solo opacidad: una transform en la vista convertiría a la barra fija en hija suya. */
+@keyframes vista-aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @keyframes subir {
   from { opacity: 0; transform: translateY(14px); }
@@ -77,7 +83,8 @@ body {
 
 /* Conmutador «Cosas con» / «Cosas de». */
 .conmutador {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   margin: 0 0 22px;
   padding: 4px;
   border-radius: 999px;
