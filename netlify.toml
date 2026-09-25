@@ -10,6 +10,12 @@
   to = "/con/index.html"
   status = 200
 
+# «Cosas de …» comparte página con «Cosas con …»: /de/ID abre la misma lista.
+[[redirects]]
+  from = "/de/*"
+  to = "/con/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

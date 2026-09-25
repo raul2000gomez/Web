@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <title>Cosas con · listas compartidas</title>
-  <meta name="description" content="Crea una lista de cosas con otra persona. Tú añades desde tu móvil y ella lo ve al momento en el suyo. Sin instalar nada: basta un enlace.">
+  <title>Cosas con · Cosas de · listas compartidas</title>
+  <meta name="description" content="Crea una lista de cosas con otra persona («Cosas con Raúl») o un grupo alrededor de un tema («Cosas de trabajo»). Todos ven y añaden al momento. Sin instalar nada: basta un enlace.">
   <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
   <meta name="robots" content="noindex">
@@ -45,18 +45,22 @@
     <!-- Inicio: crear una lista -->
     <section class="vista" data-vista="inicio" aria-labelledby="titulo-inicio">
       <p class="antetitulo">Listas compartidas</p>
+      <div class="conmutador" role="radiogroup" aria-label="Tipo de lista" id="tipo-lista">
+        <button type="button" class="conmutador-opcion" role="radio" aria-checked="true" data-tipo="con">Cosas con</button>
+        <button type="button" class="conmutador-opcion" role="radio" aria-checked="false" data-tipo="de">Cosas de</button>
+      </div>
       <form id="form-crear" novalidate>
         <h1 class="con-titulo" id="titulo-inicio">
-          <span>Cosas con</span>
+          <span id="titulo-fijo">Cosas con</span>
           <span class="con-envoltorio">
             <span class="con-medidor" id="medidor" aria-hidden="true">Raúl</span>
             <input class="con-campo" id="campo-con" type="text" name="con" placeholder="Raúl" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-label="¿Con quién es la lista?">
           </span>
         </h1>
-        <p class="entradilla">Escribe con quién y crea la lista. Te damos un enlace para pasárselo: al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.</p>
+        <p class="entradilla" id="inicio-ayuda">Con una persona. Escribe con quién y crea la lista: te damos un enlace para pasárselo y, al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.</p>
         <div class="con-acciones">
           <button type="submit" class="boton boton-azul" id="crear" disabled>
-            Crear la lista
+            <span id="crear-texto">Crear la lista</span>
             <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
           <span class="con-pista">Gratis. Sin instalar nada.</span>
@@ -145,7 +149,12 @@
         <button type="button" class="redondo" id="cerrar-hoja" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </header>
       <form id="form-ajustes" novalidate>
-        <label class="etiqueta" for="ajuste-nombre">Cosas con…</label>
+        <p class="etiqueta" id="etiqueta-tipo">Tipo</p>
+        <div class="conmutador" role="radiogroup" aria-labelledby="etiqueta-tipo" id="ajuste-tipo">
+          <button type="button" class="conmutador-opcion" role="radio" aria-checked="true" data-tipo="con">Cosas con</button>
+          <button type="button" class="conmutador-opcion" role="radio" aria-checked="false" data-tipo="de">Cosas de</button>
+        </div>
+        <label class="etiqueta" for="ajuste-nombre" id="ajuste-etiqueta-nombre">Cosas con…</label>
         <input class="campo-texto" id="ajuste-nombre" type="text" maxlength="40" autocomplete="off" autocapitalize="words" placeholder="Raúl">
         <p class="etiqueta" id="etiqueta-color">Color</p>
         <div class="hoja-muestras" id="ajuste-colores" role="radiogroup" aria-labelledby="etiqueta-color"></div>

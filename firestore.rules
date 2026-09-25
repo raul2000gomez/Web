@@ -4,7 +4,7 @@ rules_version = '2';
 // Pégalas en Firebase → Firestore Database → Reglas y publica.
 //
 // Modelo:
-//   listas/{id}              { nombre, color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
+//   listas/{id}              { nombre, tipo: 'con' | 'de', color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
 //   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por }
 //   usuarios/{uid}           { nombre, color, actualizado }
 //
@@ -31,6 +31,11 @@ service cloud.firestore {
       return v is string && v.matches('^#[0-9A-Fa-f]{6}$');
     }
 
+    // «con» (con una persona) o «de» (un grupo alrededor de un tema).
+    function tipoValido(v) {
+      return v is string && v in ['con', 'de'];
+    }
+
     // Unirse: la única diferencia con la lista anterior es que uno mismo aparece en «uids» y en «miembros».
     function seUneASiMismo() {
       let antes = resource.data;
@@ -50,10 +55,12 @@ service cloud.firestore {
         && request.resource.data.creadaPor == request.auth.uid
         && request.resource.data.uids == [request.auth.uid]
         && textoValido(request.resource.data.nombre, 40)
+        && tipoValido(request.resource.data.tipo)
         && colorValido(request.resource.data.color);
 
       allow update: if identificado()
         && textoValido(request.resource.data.nombre, 40)
+        && tipoValido(request.resource.data.tipo)
         && colorValido(request.resource.data.color)
         && request.resource.data.creadaPor == resource.data.creadaPor
         && (esMiembro(resource.data) || seUneASiMismo());

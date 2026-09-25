@@ -3,7 +3,7 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, enlaceDe, local } from './util.js';
+import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, local } from './util.js';
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -13,7 +13,8 @@ const menosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').ma
 const el = {
   app: $('#app'),
   estado: $('#estado'), estadoTexto: $('#estado-texto'),
-  formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'),
+  formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'), crearTexto: $('#crear-texto'),
+  tipoLista: $('#tipo-lista'), tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'),
   bloqueMias: $('#bloque-mis-listas'), misListas: $('#mis-listas'),
   cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
@@ -22,6 +23,7 @@ const el = {
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
   hoja: $('#hoja'), hojaVelo: $('#hoja-velo'), cerrarHoja: $('#cerrar-hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
+  ajusteTipo: $('#ajuste-tipo'), ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
   toast: $('#toast'),
   temaMeta: document.querySelectorAll('meta[name="theme-color"]')
@@ -33,7 +35,22 @@ const ICONO_BORRAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h
 let almacen = null;
 let usuario = null;
 let perfil = null;
-let pendiente = null;          // { tipo: 'crear', nombre } | { tipo: 'unirse', id, lista }
+let pendiente = null;          // { accion: 'crear', nombre, tipo } | { accion: 'unirse', id, lista }
+let tipoElegido = 'con';       // «con» (con una persona) o «de» (un grupo alrededor de un tema)
+
+/* Textos que cambian según el tipo. */
+const TEXTOS = {
+  con: {
+    titulo: 'Cosas con', ejemplo: 'Raúl', boton: 'Crear la lista',
+    ayuda: 'Con una persona. Escribe con quién y crea la lista: te damos un enlace para pasárselo y, al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.',
+    creada: 'Lista creada. Invita a alguien con el enlace.', etiqueta: '¿Con quién es la lista?'
+  },
+  de: {
+    titulo: 'Cosas de', ejemplo: 'trabajo', boton: 'Crear el grupo',
+    ayuda: 'Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje», «Cosas de la boda». Comparte el enlace con quien quieras y todos ven y añaden las cosas de ese tema.',
+    creada: 'Grupo creado. Comparte el enlace con la gente.', etiqueta: '¿De qué va la lista?'
+  }
+};
 let listaId = null;
 let lista = null;
 let cosasActuales = new Map(); // id -> datos
@@ -78,10 +95,15 @@ async function arrancar() {
 /* ---------- Rutas y vistas ---------- */
 
 function idDeUrl() {
-  const m = location.pathname.match(/^\/con\/([A-Za-z0-9]{8,24})\/?$/);
-  if (m) return m[1].toLowerCase();
+  const m = location.pathname.match(/^\/(con|de)\/([A-Za-z0-9]{8,24})\/?$/);
+  if (m) return m[2].toLowerCase();
   const q = new URLSearchParams(location.search).get('l');
   return esId(q) ? q : null;
+}
+
+/* Al entrar por /de/ se preselecciona «Cosas de». */
+function tipoDeUrl() {
+  return /^\/de\/?$/.test(location.pathname) ? 'de' : null;
 }
 
 function ir(ruta) {
@@ -112,7 +134,7 @@ async function enrutar() {
   if (!datos) { document.title = 'Cosas con'; return mostrar('no-existe'); }
 
   if (!(datos.uids || []).includes(usuario.uid)) {
-    pendiente = { tipo: 'unirse', id, lista: datos };
+    pendiente = { accion: 'unirse', id, lista: datos };
     return pedirNombre(datos);
   }
   abrirLista(id, datos);
@@ -121,8 +143,9 @@ async function enrutar() {
 /* ---------- Inicio ---------- */
 
 function mostrarInicio() {
-  document.title = 'Cosas con · listas compartidas';
+  document.title = 'Cosas con · Cosas de · listas compartidas';
   mostrar('inicio');
+  elegirTipo(tipoDeUrl() || tipoElegido);
   medir();
   escucharMias();
   pintarCuenta();
@@ -136,24 +159,49 @@ function medir() {
 
 el.campoCon.addEventListener('input', medir);
 
+/* Pinta un conmutador y devuelve el tipo marcado. */
+function marcarConmutador(conmutador, tipo) {
+  conmutador.querySelectorAll('.conmutador-opcion').forEach(b => b.setAttribute('aria-checked', b.dataset.tipo === tipo ? 'true' : 'false'));
+}
+
+function elegirTipo(tipo) {
+  tipoElegido = tipo === 'de' ? 'de' : 'con';
+  const t = TEXTOS[tipoElegido];
+  marcarConmutador(el.tipoLista, tipoElegido);
+  el.tituloFijo.textContent = t.titulo;
+  el.campoCon.placeholder = t.ejemplo;
+  el.campoCon.setAttribute('aria-label', t.etiqueta);
+  el.campoCon.setAttribute('autocapitalize', tipoElegido === 'con' ? 'words' : 'sentences');
+  el.inicioAyuda.textContent = t.ayuda;
+  el.crearTexto.textContent = t.boton;
+  medir();
+}
+
+el.tipoLista.addEventListener('click', ev => {
+  const b = ev.target.closest('.conmutador-opcion');
+  if (!b) return;
+  elegirTipo(b.dataset.tipo);
+  el.campoCon.focus();
+});
+
 el.formCrear.addEventListener('submit', async ev => {
   ev.preventDefault();
   const nombre = limpiar(el.campoCon.value, 40);
   if (!nombre) return;
-  pendiente = { tipo: 'crear', nombre };
+  pendiente = { accion: 'crear', nombre, tipo: tipoElegido };
   if (!perfil || !perfil.nombre) return pedirNombre(null);
-  await crearLista(nombre);
+  await crearLista(nombre, tipoElegido);
 });
 
-async function crearLista(nombre) {
+async function crearLista(nombre, tipo) {
   el.crear.disabled = true;
   try {
-    const id = await almacen.crearLista({ nombre, color: colorAleatorio(), perfil });
+    const id = await almacen.crearLista({ nombre, tipo, color: colorAleatorio(), perfil });
     pendiente = null;
     el.campoCon.value = '';
-    history.pushState({}, '', `/con/${id}`);
+    history.pushState({}, '', `/${tipo === 'de' ? 'de' : 'con'}/${id}`);
     await enrutar();
-    toast('Lista creada. Invita a alguien con el enlace.', { icono: true, duracion: 4200 });
+    toast(TEXTOS[tipo === 'de' ? 'de' : 'con'].creada, { icono: true, duracion: 4200 });
   } catch (e) {
     console.error(e);
     toast('No se pudo crear la lista. Inténtalo otra vez.');
@@ -170,7 +218,7 @@ function escucharMias() {
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.className = 'mi-lista';
-      a.href = `/con/${l.id}`;
+      a.href = `/${tipoDe(l)}/${l.id}`;
       const miembros = Object.entries(l.miembros || {});
       const otros = miembros.filter(([u, m]) => u !== usuario.uid && m && m.nombre).map(([, m]) => m.nombre);
       let detalle;
@@ -178,7 +226,7 @@ function escucharMias() {
       else if (miembros.length === 2) detalle = `Tú y ${otros[0] || 'otra persona'}`;
       else detalle = `${miembros.length} personas`;
       a.innerHTML = `<span class="mi-lista-color" style="--color:${l.color || '#2F6FED'}"></span><span class="mi-lista-texto"><span class="mi-lista-nombre"></span><span class="mi-lista-detalle"></span></span>`;
-      a.querySelector('.mi-lista-nombre').textContent = tituloDe(l);
+      a.querySelector('.mi-lista-nombre').textContent = tituloDe(l, usuario.uid);
       a.querySelector('.mi-lista-detalle').textContent = detalle;
       a.addEventListener('click', ev => { ev.preventDefault(); ir(a.getAttribute('href')); });
       li.appendChild(a);
@@ -247,9 +295,18 @@ el.salirCuenta.addEventListener('click', async () => {
 
 function pedirNombre(datos) {
   mostrar('nombre');
-  const creando = pendiente && pendiente.tipo === 'crear';
+  const creando = pendiente && pendiente.accion === 'crear';
   el.nombreAntetitulo.textContent = creando ? 'Casi está' : 'Te han invitado';
-  el.tituloNombre.textContent = creando ? `Cosas con ${pendiente.nombre}` : tituloDe(datos);
+  let titulo;
+  if (creando) {
+    titulo = `${TEXTOS[pendiente.tipo].titulo} ${pendiente.nombre}`;
+  } else if (tipoDe(datos) === 'con' && datos.miembros && datos.miembros[datos.creadaPor] && datos.miembros[datos.creadaPor].nombre) {
+    /* A quien invitan a una lista «con» se le enseña con quién: «Cosas con Ana». */
+    titulo = `Cosas con ${limpiar(datos.miembros[datos.creadaPor].nombre, 40)}`;
+  } else {
+    titulo = tituloDe(datos);
+  }
+  el.tituloNombre.textContent = titulo;
   el.nombreAyuda.textContent = creando
     ? 'Di cómo te llamas para que en la lista se sepa quién añade cada cosa. Solo lo preguntamos una vez.'
     : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
@@ -270,8 +327,8 @@ el.formNombre.addEventListener('submit', async ev => {
   almacen.guardarPerfil(perfil);
   el.entrar.disabled = true;
   try {
-    if (pendiente.tipo === 'crear') {
-      await crearLista(pendiente.nombre);
+    if (pendiente.accion === 'crear') {
+      await crearLista(pendiente.nombre, pendiente.tipo);
     } else {
       await almacen.unirse(pendiente.id, perfil);
       pendiente = null;
@@ -330,7 +387,7 @@ function pintarColor(color) {
 }
 
 function pintarLista(l) {
-  const titulo = tituloDe(l);
+  const titulo = tituloDe(l, usuario.uid);
   el.tituloLista.textContent = titulo;
   document.title = titulo;
   pintarColor(colorPrevisualizado || l.color || '#2F6FED');
@@ -480,8 +537,8 @@ el.volver.addEventListener('click', ev => { ev.preventDefault(); ir('/con/'); })
 
 async function invitar() {
   if (!listaId) return;
-  const url = enlaceDe(listaId);
-  const titulo = tituloDe(lista);
+  const url = enlaceDe(listaId, tipoDe(lista));
+  const titulo = tituloDe(lista, usuario.uid);
   if (navigator.share) {
     try { await navigator.share({ title: titulo, text: `Únete a «${titulo}» y apuntamos las cosas juntos:`, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
@@ -507,12 +564,18 @@ async function copiar(texto) {
 }
 
 el.invitar.addEventListener('click', invitar);
-el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId)));
+el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista))));
 
 /* ---------- Ajustes de la lista (hoja) ---------- */
 
+let tipoAjuste = 'con';
+
 function abrirHoja() {
   if (!lista) return;
+  tipoAjuste = tipoDe(lista);
+  marcarConmutador(el.ajusteTipo, tipoAjuste);
+  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
+  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
   el.ajusteNombre.value = lista.nombre || '';
   el.ajusteMiNombre.value = perfil ? perfil.nombre : '';
   el.ajusteColores.innerHTML = '';
@@ -532,7 +595,7 @@ function abrirHoja() {
     el.hojaNota.textContent = 'Modo local: esta lista solo existe en este navegador y el enlace solo funciona aquí. Cuando la web tenga activada la sincronización, las listas se podrán compartir de verdad.';
   } else {
     const code = document.createElement('code');
-    code.textContent = enlaceDe(listaId);
+    code.textContent = enlaceDe(listaId, tipoDe(lista));
     el.hojaNota.append('Cualquiera con el enlace puede entrar en la lista: ', code);
   }
   el.hoja.classList.add('abierta');
@@ -555,6 +618,15 @@ el.cerrarHoja.addEventListener('click', cerrarHoja);
 el.hojaVelo.addEventListener('click', cerrarHoja);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja(); });
 
+el.ajusteTipo.addEventListener('click', ev => {
+  const b = ev.target.closest('.conmutador-opcion');
+  if (!b) return;
+  tipoAjuste = b.dataset.tipo === 'de' ? 'de' : 'con';
+  marcarConmutador(el.ajusteTipo, tipoAjuste);
+  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
+  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
+});
+
 el.ajusteColores.addEventListener('click', ev => {
   const b = ev.target.closest('.hoja-muestra');
   if (!b) return;
@@ -571,6 +643,7 @@ el.formAjustes.addEventListener('submit', async ev => {
   const miNombre = limpiar(el.ajusteMiNombre.value, 40) || (perfil && perfil.nombre);
   const cambios = {};
   if (nombre !== lista.nombre) cambios.nombre = nombre;
+  if (tipoAjuste !== tipoDe(lista)) cambios.tipo = tipoAjuste;
   if (color !== lista.color) cambios.color = color;
   try {
     if (Object.keys(cambios).length) await almacen.actualizarLista(listaId, cambios);
@@ -580,6 +653,7 @@ el.formAjustes.addEventListener('submit', async ev => {
       await almacen.actualizarMiembro(listaId, perfil);
     }
     if (color) lista = { ...lista, color };
+    if (cambios.tipo) { lista = { ...lista, tipo: cambios.tipo }; history.replaceState({}, '', `/${cambios.tipo}/${listaId}`); }
     colorPrevisualizado = null;
     cerrarHoja();
     toast('Guardado', { icono: true });

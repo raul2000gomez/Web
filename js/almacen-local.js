@@ -78,10 +78,10 @@ export function crearAlmacenLocal() {
     async leerPerfil() { return local.leer('cosascon:perfil'); },
     async guardarPerfil(perfil) { local.guardar('cosascon:perfil', perfil); },
 
-    async crearLista({ nombre, color, perfil }) {
+    async crearLista({ nombre, tipo, color, perfil }) {
       const id = idNuevo();
       datos.listas[id] = {
-        id, nombre, color, creada: ahora(), creadaPor: uid,
+        id, nombre, tipo: tipo === 'de' ? 'de' : 'con', color, creada: ahora(), creadaPor: uid,
         uids: [uid],
         miembros: { [uid]: { nombre: perfil.nombre, color: perfil.color, desde: ahora() } },
         cosas: {}
@@ -156,6 +156,7 @@ export function crearAlmacenLocal() {
       const l = datos.listas[id];
       if (!l) return;
       if (typeof cambios.nombre === 'string') l.nombre = cambios.nombre;
+      if (cambios.tipo === 'con' || cambios.tipo === 'de') l.tipo = cambios.tipo;
       if (esColor(cambios.color)) l.color = cambios.color;
       guardar();
     },

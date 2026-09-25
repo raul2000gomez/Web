@@ -133,12 +133,12 @@ export async function crearAlmacenFirebase(config) {
         .catch(e => console.warn('No se pudo guardar el perfil', e));
     },
 
-    async crearLista({ nombre, color, perfil }) {
+    async crearLista({ nombre, tipo, color, perfil }) {
       const u = uid();
       if (!u) throw new Error('sin-usuario');
       const id = idNuevo();
       await fs.setDoc(ref(id), {
-        nombre, color,
+        nombre, tipo: tipo === 'de' ? 'de' : 'con', color,
         creada: fs.serverTimestamp(),
         creadaPor: u,
         uids: [u],
@@ -208,6 +208,7 @@ export async function crearAlmacenFirebase(config) {
     async actualizarLista(id, cambios) {
       const c = {};
       if (typeof cambios.nombre === 'string') c.nombre = cambios.nombre;
+      if (cambios.tipo === 'con' || cambios.tipo === 'de') c.tipo = cambios.tipo;
       if (esColor(cambios.color)) c.color = cambios.color;
       if (Object.keys(c).length) await fs.updateDoc(ref(id), c);
     },

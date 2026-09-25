@@ -4,8 +4,10 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 ([cosas-app.netlify.app](https://cosas-app.netlify.app)). Dos partes:
 
 - **Portada** (`/`): explica cómo funciona la app, qué tiene y cómo se instala.
-- **Cosas con** (`/con/`): listas compartidas en tiempo real. Escribes «Cosas con Raúl»,
-  te da un enlace y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
+- **Cosas con** y **Cosas de** (`/con/`): listas compartidas en tiempo real. «Cosas con Raúl»
+  es una lista con otra persona; «Cosas de trabajo» o «Cosas de viaje», un grupo de gente
+  alrededor de un tema. En los dos casos te da un enlace (`cosas.es/con/…` o `cosas.es/de/…`)
+  y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
 
 Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se sube tal cual.
 
@@ -13,7 +15,7 @@ Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se 
 
 ```
 index.html            Portada
-con/index.html        Cosas con (una sola página; /con/ID abre la lista ID)
+con/index.html        Cosas con y Cosas de (una sola página; /con/ID y /de/ID abren la lista ID)
 css/base.css          Colores, tipografía, botones, cabecera y pie (común)
 css/landing.css       Estilos de la portada
 css/con.css           Estilos de Cosas con
@@ -83,10 +85,12 @@ listas son las reglas de `firestore.rules`.
 
 - Al entrar en `/con/` se crea una sesión **anónima** en Firebase sin que la persona haga nada.
   Al crear o unirse a una lista se le pide solo su nombre.
-- Una lista es `listas/{id}` con su nombre, color, quién la creó, los `uids` de sus miembros y
-  sus datos (nombre y color). Las cosas van en `listas/{id}/cosas/{cosaId}`.
-- Cualquiera con el enlace (`cosas.es/con/ID`) puede unirse; solo los miembros ven y tocan las
-  cosas; solo quien creó la lista puede borrarla para todos.
+- Una lista es `listas/{id}` con su nombre, su tipo (`con` o `de`), color, quién la creó, los
+  `uids` de sus miembros y sus datos (nombre y color). Las cosas van en `listas/{id}/cosas/{cosaId}`.
+- En una lista «con» de dos personas cada una ve el nombre de la otra: Ana ve «Cosas con Raúl»
+  y Raúl ve «Cosas con Ana». Una lista «de» se llama igual para todos: «Cosas de viaje».
+- Cualquiera con el enlace (`cosas.es/con/ID` o `cosas.es/de/ID`) puede unirse; solo los miembros
+  ven y tocan las cosas; solo quien creó la lista puede borrarla para todos.
 - **Continuar con Google** enlaza la sesión anónima con la cuenta de Google: el mismo uid, las
   mismas listas, ahora también en otros dispositivos. Si ese Google ya tenía cuenta, se entra con
   ella y se vuelve a unir a las listas que había en este navegador.
@@ -94,8 +98,8 @@ listas son las reglas de `firestore.rules`.
 
 ## Probar en el ordenador
 
-Cualquier servidor estático vale. Para que `/con/ID` funcione en local hace falta servir
-`con/index.html` en esas rutas, como hace Netlify. Con Node:
+Cualquier servidor estático vale. Para que `/con/ID` y `/de/ID` funcionen en local hace falta
+servir `con/index.html` en esas rutas, como hace Netlify. Con Node:
 
 ```sh
 npx serve --single .        # o: npx http-server .

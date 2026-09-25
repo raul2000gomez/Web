@@ -75,6 +75,35 @@ body {
 
 /* ---------- Inicio: «Cosas con ___» ---------- */
 
+/* Conmutador «Cosas con» / «Cosas de». */
+.conmutador {
+  display: inline-flex;
+  margin: 0 0 22px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tinta) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--filete);
+}
+
+.conmutador-opcion {
+  padding: 9px 18px;
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color var(--rapido) ease, color var(--rapido) ease, box-shadow var(--rapido) ease;
+}
+
+.conmutador-opcion[aria-checked="true"] {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: 0 2px 8px rgba(22, 24, 29, .12);
+}
+
+.hoja .conmutador { margin-bottom: 0; background: var(--superficie-l); box-shadow: inset 0 0 0 1px var(--filete-l); }
+.hoja .conmutador-opcion { color: var(--tinta-l-suave); }
+.hoja .conmutador-opcion[aria-checked="true"] { background: var(--tinta-l); color: var(--fondo); box-shadow: none; }
+
 .con-titulo {
   display: flex;
   flex-wrap: wrap;
