@@ -75,6 +75,17 @@ export function tipoDe(lista) {
   return lista && lista.tipo === 'de' ? 'de' : 'con';
 }
 
+/* «Cosas con» es solo para dos personas: llena cuando ya están las dos. */
+export function estaLlena(lista, uid) {
+  if (!lista || tipoDe(lista) !== 'con') return false;
+  const uids = Array.isArray(lista.uids) ? lista.uids : [];
+  return uids.length >= 2 && !(uid && uids.includes(uid));
+}
+
+export function esDeDos(lista) {
+  return !!lista && tipoDe(lista) === 'con' && Array.isArray(lista.uids) && lista.uids.length >= 2;
+}
+
 /* El título. En una lista «con» de dos personas, cada una ve el nombre de la otra:
    Ana ve «Cosas con Raúl» y Raúl, «Cosas con Ana». */
 export function tituloDe(lista, uid) {

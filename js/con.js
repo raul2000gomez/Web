@@ -3,7 +3,7 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, local } from './util.js';
+import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos, local } from './util.js';
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -19,7 +19,7 @@ const el = {
   cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
-  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
+  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), soloDos: $('#solo-dos'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
   hoja: $('#hoja'), hojaVelo: $('#hoja-velo'), cerrarHoja: $('#cerrar-hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
@@ -47,8 +47,8 @@ const otroTipo = tipoPagina === 'de' ? 'con' : 'de';
 const TEXTOS = {
   con: {
     titulo: 'Cosas con', ejemplo: 'Raúl', boton: 'Crear la lista',
-    ayuda: 'Con una persona. Escribe con quién y crea la lista: te damos un enlace para pasárselo y, al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.',
-    creada: 'Lista creada. Invita a alguien con el enlace.', etiqueta: '¿Con quién es la lista?',
+    ayuda: 'Para dos personas: tú y otra. Escribe con quién, crea la lista y pásale el enlace. Lo que tú añadas lo verá al momento, y tú lo suyo. Nadie más puede entrar.',
+    creada: 'Lista creada. Pásale el enlace a la otra persona.', etiqueta: '¿Con quién es la lista?',
     mias: 'Tus listas', otras: n => n === 1 ? 'Tienes 1 lista en Cosas con' : `Tienes ${n} listas en Cosas con`, ir: 'Ir a Cosas con'
   },
   de: {
@@ -136,10 +136,18 @@ async function enrutar() {
   if (!datos) { document.title = 'Cosas con'; return mostrar('no-existe'); }
 
   if (!(datos.uids || []).includes(usuario.uid)) {
+    /* «Cosas con» es solo para dos: si ya están, la tercera persona no entra. */
+    if (estaLlena(datos, usuario.uid)) return mostrarLlena();
     pendiente = { accion: 'unirse', id, lista: datos };
     return pedirNombre(datos);
   }
   abrirLista(id, datos);
+}
+
+function mostrarLlena() {
+  pendiente = null;
+  document.title = 'Esta lista ya es de dos';
+  mostrar('llena');
 }
 
 /* ---------- Inicio ---------- */
@@ -240,8 +248,8 @@ function pintarCruce(otras) {
     el.cruce.append(t.otras(otras) + '. ');
   } else {
     el.cruce.append(otroTipo === 'de'
-      ? '¿Un grupo de gente alrededor de un tema, como «Cosas de viaje»? '
-      : '¿Una lista con una sola persona, como «Cosas con Raúl»? ');
+      ? '¿Sois más de dos, o es un tema como «Cosas de viaje»? '
+      : '¿Una lista solo entre dos, como «Cosas con Raúl»? ');
   }
   const a = document.createElement('a');
   a.href = `/${otroTipo}/`;
@@ -350,6 +358,7 @@ el.formNombre.addEventListener('submit', async ev => {
       toast(`Ya estás en la lista`, { icono: true });
     }
   } catch (e) {
+    if (e && e.message === 'lista-llena') return mostrarLlena();
     console.error(e);
     toast('No se pudo entrar en la lista.');
     el.entrar.disabled = false;
@@ -424,6 +433,10 @@ function pintarLista(l) {
   });
 
   el.borrarLista.hidden = l.creadaPor !== usuario.uid;
+  /* Con las dos personas dentro, «Cosas con» ya no admite a nadie: sin invitar. */
+  const deDos = esDeDos(l);
+  el.invitar.hidden = deDos;
+  el.soloDos.hidden = !deDos;
   /* Las cosas llevan el avatar de quien las añadió: si cambia un nombre o color, se repintan. */
   filas.forEach((li, cid) => { const c = cosasActuales.get(cid); if (c) actualizarFila(li, c); });
 }
@@ -604,8 +617,16 @@ function abrirHoja() {
     b.setAttribute('aria-pressed', (lista.color || '').toUpperCase() === p.color.toUpperCase() ? 'true' : 'false');
     el.ajusteColores.appendChild(b);
   });
+  /* Con dos personas en una lista «con» no hay enlace que copiar. */
+  el.copiarEnlace.hidden = esDeDos(lista);
+  /* Para pasar a «Cosas con», la lista tiene que ser de dos como mucho. */
+  const opcionCon = el.ajusteTipo.querySelector('[data-tipo="con"]');
+  opcionCon.disabled = (lista.uids || []).length > 2;
+  opcionCon.title = opcionCon.disabled ? '«Cosas con» es solo para dos personas' : '';
   el.hojaNota.innerHTML = '';
-  if (almacen.modo === 'local') {
+  if (esDeDos(lista)) {
+    el.hojaNota.textContent = '«Cosas con» es solo para dos y ya estáis los dos: el enlace no admite a nadie más. Si queréis apuntar cosas más gente, cread un grupo en Cosas de.';
+  } else if (almacen.modo === 'local') {
     el.hojaNota.textContent = 'Modo local: esta lista solo existe en este navegador y el enlace solo funciona aquí. Cuando la web tenga activada la sincronización, las listas se podrán compartir de verdad.';
   } else {
     const code = document.createElement('code');
@@ -634,7 +655,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja
 
 el.ajusteTipo.addEventListener('click', ev => {
   const b = ev.target.closest('.conmutador-opcion');
-  if (!b) return;
+  if (!b || b.disabled) return;
   tipoAjuste = b.dataset.tipo === 'de' ? 'de' : 'con';
   marcarConmutador(el.ajusteTipo, tipoAjuste);
   el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
@@ -671,7 +692,11 @@ el.formAjustes.addEventListener('submit', async ev => {
     colorPrevisualizado = null;
     cerrarHoja();
     toast('Guardado', { icono: true });
-  } catch (e) { console.error(e); toast('No se pudo guardar.'); }
+  } catch (e) {
+    if (e && e.message === 'demasiados') return toast('«Cosas con» es solo para dos personas.');
+    console.error(e);
+    toast('No se pudo guardar.');
+  }
 });
 
 /* Las acciones delicadas se confirman tocando dos veces el mismo botón: sin diálogos del navegador. */

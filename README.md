@@ -4,7 +4,8 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 ([cosas-app.netlify.app](https://cosas-app.netlify.app)). Dos partes:
 
 - **Portada** (`/`): explica cómo funciona la app, qué tiene y cómo se instala.
-- **Cosas con** (`/con/`): una lista compartida con otra persona, «Cosas con Raúl».
+- **Cosas con** (`/con/`): una lista compartida con otra persona, «Cosas con Raúl». Solo para dos:
+  cuando ya están las dos, el enlace no admite a nadie más (lo impiden la web y las reglas de Firestore).
 - **Cosas de** (`/de/`): un grupo de gente alrededor de un tema, «Cosas de trabajo» o «Cosas de viaje».
 
 Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.es/con/…` o
@@ -90,8 +91,10 @@ listas son las reglas de `firestore.rules`.
   Al crear o unirse a una lista se le pide solo su nombre.
 - Una lista es `listas/{id}` con su nombre, su tipo (`con` o `de`), color, quién la creó, los
   `uids` de sus miembros y sus datos (nombre y color). Las cosas van en `listas/{id}/cosas/{cosaId}`.
-- En una lista «con» de dos personas cada una ve el nombre de la otra: Ana ve «Cosas con Raúl»
-  y Raúl ve «Cosas con Ana». Una lista «de» se llama igual para todos: «Cosas de viaje».
+- Una lista «con» es de dos personas exactamente: cada una ve el nombre de la otra (Ana ve
+  «Cosas con Raúl» y Raúl ve «Cosas con Ana»), y una tercera con el enlace ve «Esta lista ya es
+  de dos» y la invitación a crear un grupo en Cosas de. Una lista «de» no tiene límite y se llama
+  igual para todos: «Cosas de viaje».
 - Cualquiera con el enlace (`cosas.es/con/ID` o `cosas.es/de/ID`) puede unirse; solo los miembros
   ven y tocan las cosas; solo quien creó la lista puede borrarla para todos.
 - **Continuar con Google** enlaza la sesión anónima con la cuenta de Google: el mismo uid, las

@@ -3,7 +3,7 @@
    todos sus dispositivos, enlaza la cuenta con Google. Las listas se sincronizan en
    tiempo real y funcionan sin conexión gracias a la caché de Firestore. */
 
-import { idNuevo, local, ordenar, esColor } from './util.js';
+import { idNuevo, local, ordenar, esColor, estaLlena } from './util.js';
 
 const VERSION = '12.4.0';
 const CDN = `https://www.gstatic.com/firebasejs/${VERSION}/`;
@@ -78,10 +78,19 @@ export async function crearAlmacenFirebase(config) {
   async function unirse(id, perfil) {
     const u = uid();
     if (!u) throw new Error('sin-usuario');
-    await fs.updateDoc(ref(id), {
-      uids: fs.arrayUnion(u),
-      [`miembros.${u}`]: { nombre: perfil.nombre, color: perfil.color, desde: fs.serverTimestamp() }
-    });
+    /* «Cosas con» es solo para dos: se comprueba antes y, por si acaso, las reglas lo impiden también. */
+    let actual = null;
+    try { actual = datosLista(await fs.getDocFromServer(ref(id))); } catch (e) { /* Sin red: lo decidirán las reglas. */ }
+    if (actual && estaLlena(actual, u)) throw new Error('lista-llena');
+    try {
+      await fs.updateDoc(ref(id), {
+        uids: fs.arrayUnion(u),
+        [`miembros.${u}`]: { nombre: perfil.nombre, color: perfil.color, desde: fs.serverTimestamp() }
+      });
+    } catch (e) {
+      if (e && e.code === 'permission-denied') throw new Error('lista-llena');
+      throw e;
+    }
     recordarId(id);
   }
 
