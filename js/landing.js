@@ -352,53 +352,53 @@
     });
   }
 
-  /* ---------- Nombre que cambia en «Cosas con» ---------- */
+  /* ---------- Nombres que cambian («Cosas con Raúl», «Cosas de viaje») ---------- */
 
-  var rotando = document.getElementById('nombre-rotando');
-  if (rotando && !menosMovimiento) {
+  document.querySelectorAll('.nombre-rotando').forEach(function (rotando, indice) {
+    if (menosMovimiento) return;
     var nombres = rotando.children;
     var actual = 0;
-    setInterval(function () {
-      nombres[actual].classList.remove('activo');
-      actual = (actual + 1) % nombres.length;
-      nombres[actual].classList.add('activo');
-    }, 2400);
+    setTimeout(function () {
+      setInterval(function () {
+        nombres[actual].classList.remove('activo');
+        actual = (actual + 1) % nombres.length;
+        nombres[actual].classList.add('activo');
+      }, 2400);
+    }, indice * 800);
+  });
+
+  /* ---------- Listas compartidas en miniatura ----------
+     «Cosas con»: dos móviles con la misma lista; lo que escribe uno aparece en el otro.
+     «Cosas de»: un móvil de grupo donde cada cosa lleva quién la puso. */
+
+  function filaCompartida(cosa) {
+    var div = document.createElement('div');
+    div.className = 'tel-fila nueva';
+    div.innerHTML = '<span class="tel-check">' + ICONO_CHECK + '</span><span class="tel-texto"></span><span class="con-avatar"></span>';
+    div.querySelector('.tel-texto').textContent = cosa.t;
+    var av = div.querySelector('.con-avatar');
+    av.textContent = cosa.q;
+    av.style.setProperty('--avatar', cosa.c);
+    return div;
   }
 
-  /* ---------- Dos móviles con la misma lista ---------- */
-
-  var conDemo = document.getElementById('con-demo');
-  if (conDemo && !menosMovimiento) {
-    var listas = conDemo.querySelectorAll('.tel-lista-con');
-    var COSAS_CON = [
-      { t: 'Leche', q: 'R', c: '#2F6FED' },
-      { t: 'Pilas para el mando', q: 'A', c: '#EF5B5B' },
-      { t: 'Regalo de Jorge', q: 'R', c: '#2F6FED' },
-      { t: 'Papel de horno', q: 'A', c: '#EF5B5B' }
-    ];
-
-    function filaCon(cosa) {
-      var div = document.createElement('div');
-      div.className = 'tel-fila nueva';
-      div.innerHTML = '<span class="tel-check">' + ICONO_CHECK + '</span><span class="tel-texto"></span><span class="con-avatar"></span>';
-      div.querySelector('.tel-texto').textContent = cosa.t;
-      var av = div.querySelector('.con-avatar');
-      av.textContent = cosa.q;
-      av.style.setProperty('--avatar', cosa.c);
-      return div;
+  function demoCompartida(contenedor, cosas) {
+    if (!contenedor) return;
+    var listas = contenedor.querySelectorAll('.tel-lista-con');
+    if (menosMovimiento) {
+      listas.forEach(function (l) { cosas.slice(0, 2).forEach(function (c) { var f = filaCompartida(c); f.classList.remove('nueva'); l.appendChild(f); }); });
+      return;
     }
+    var visibleAqui = false;
+    var activa = false;
 
-    var conVisible = false;
-    var conActiva = false;
-
-    function cicloCon() {
-      if (conActiva) return;
-      conActiva = true;
+    function ciclo() {
+      if (activa) return;
+      activa = true;
       var i = 0;
       (function paso() {
-        if (!conVisible) return setTimeout(paso, 400);
-        if (i >= COSAS_CON.length) {
-          /* Marca una, espera y vuelve a empezar. */
+        if (!visibleAqui) return setTimeout(paso, 400);
+        if (i >= cosas.length) {
           setTimeout(function () {
             listas.forEach(function (l) { if (l.children[1]) l.children[1].classList.add('hecha'); });
             setTimeout(function () {
@@ -409,11 +409,11 @@
           }, 900);
           return;
         }
-        var cosa = COSAS_CON[i];
-        /* Aparece primero en el móvil de quien la escribe y, un instante después, en el otro. */
-        var primero = cosa.q === 'R' ? 0 : 1;
-        listas[primero].appendChild(filaCon(cosa));
-        setTimeout(function () { listas[1 - primero].appendChild(filaCon(cosa)); }, 420);
+        var cosa = cosas[i];
+        /* Aparece primero en el móvil de quien la escribe y, un instante después, en los demás. */
+        var primero = Math.min(listas.length - 1, cosa.q === 'R' ? 0 : 1);
+        listas[primero].appendChild(filaCompartida(cosa));
+        listas.forEach(function (l, j) { if (j !== primero) setTimeout(function () { l.appendChild(filaCompartida(cosa)); }, 420); });
         i += 1;
         setTimeout(paso, 1500);
       })();
@@ -421,16 +421,26 @@
 
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (entradas) {
-        conVisible = entradas[0].isIntersecting;
-        if (conVisible) cicloCon();
-      }, { threshold: 0.2 }).observe(conDemo);
+        visibleAqui = entradas[0].isIntersecting;
+        if (visibleAqui) ciclo();
+      }, { threshold: 0.2 }).observe(contenedor);
     } else {
-      conVisible = true;
-      cicloCon();
+      visibleAqui = true;
+      ciclo();
     }
-  } else if (conDemo) {
-    conDemo.querySelectorAll('.tel-lista-con').forEach(function (l) {
-      l.innerHTML = '<div class="tel-fila"><span class="tel-check">' + ICONO_CHECK + '</span><span class="tel-texto">Leche</span></div><div class="tel-fila"><span class="tel-check">' + ICONO_CHECK + '</span><span class="tel-texto">Pilas para el mando</span></div>';
-    });
   }
+
+  demoCompartida(document.getElementById('con-demo'), [
+    { t: 'Leche', q: 'R', c: '#2F6FED' },
+    { t: 'Pilas para el mando', q: 'A', c: '#EF5B5B' },
+    { t: 'Regalo de Jorge', q: 'R', c: '#2F6FED' },
+    { t: 'Papel de horno', q: 'A', c: '#EF5B5B' }
+  ]);
+
+  demoCompartida(document.getElementById('de-demo'), [
+    { t: 'Reservar el hotel', q: 'A', c: '#EF5B5B' },
+    { t: 'Cargador del móvil', q: 'R', c: '#2F6FED' },
+    { t: 'Protector solar', q: 'L', c: '#7A4FD6' },
+    { t: 'Cambiar euros', q: 'A', c: '#EF5B5B' }
+  ]);
 })();

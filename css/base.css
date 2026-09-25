@@ -17,6 +17,7 @@
 
   --azul: #2F6FED;
   --azul-texto: #2F6FED; /* El azul cuando es texto o icono: en oscuro se aclara para que se lea. */
+  --turquesa-texto: #158F89;
   --azul-oscuro: #245BC7;
   --azul-suave: #E5EDFF;
   --verde: #22C55E;
@@ -55,6 +56,7 @@
     --filete: rgba(242, 240, 234, .09);
     --filete-2: rgba(242, 240, 234, .18);
     --azul-texto: #7FA8FF;
+    --turquesa-texto: #4FD8CF;
     --azul-suave: #1B2A4D;
     --sombra-suave: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 40px -20px rgba(0, 0, 0, .6);
     --sombra-telefono: 0 40px 80px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .08);
@@ -72,6 +74,7 @@
   --filete: rgba(242, 240, 234, .09);
   --filete-2: rgba(242, 240, 234, .18);
   --azul-texto: #7FA8FF;
+  --turquesa-texto: #4FD8CF;
   --azul-suave: #1B2A4D;
   --sombra-suave: 0 1px 2px rgba(0, 0, 0, .3), 0 16px 40px -20px rgba(0, 0, 0, .6);
   --sombra-telefono: 0 40px 80px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(255, 255, 255, .08);

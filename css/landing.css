@@ -11,6 +11,9 @@ main { display: block; }
   margin: 0 auto;
 }
 
+/* Dos bloques seguidos (Cosas con y Cosas de) van juntos, sin todo el aire de una sección. */
+.seccion-junta { padding-top: 0; padding-bottom: 20px; }
+
 /* ---------- Teléfono (maqueta de la app) ---------- */
 
 /* Mismo modelo que la app: un color plano y una «tinta» según su luminancia. */
@@ -950,6 +953,21 @@ main { display: block; }
 .con-anuncio .boton-primario { background: #F6F3EC; color: #16181D; }
 .con-anuncio .boton-primario:hover { background: var(--azul); color: #fff; }
 
+/* «Cosas de»: el mismo bloque en claro, con el turquesa de la app como acento. */
+.anuncio-de {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-suave), inset 0 0 0 1px var(--filete);
+}
+
+.anuncio-de::before { background: radial-gradient(closest-side, rgba(27, 163, 156, .32), transparent 70%); }
+.anuncio-de .antetitulo { color: var(--tinta-2); }
+.anuncio-de .antetitulo::before { background: #1BA39C; }
+.anuncio-de .entradilla { color: var(--tinta-2); }
+.anuncio-de .nombre-rotando { color: var(--turquesa-texto); }
+.anuncio-de .boton-primario { background: var(--tinta); color: var(--papel); }
+.anuncio-de .boton-primario:hover { background: #1BA39C; color: #0A0A0A; }
+
 .nombre-rotando {
   display: inline-grid;
   vertical-align: top;
@@ -987,6 +1005,13 @@ main { display: block; }
 }
 
 .con-demo .mini-telefono:nth-child(2) { transform: translateY(24px); }
+
+/* Un solo móvil, más grande, con la fila de quién está en el grupo. */
+.de-demo .mini-telefono { --fondo: #1BA39C; width: 186px; aspect-ratio: 186 / 300; }
+.de-demo .mini-telefono:nth-child(2) { transform: none; }
+
+.tel-miembros { display: flex; gap: 5px; margin: 0 0 8px; }
+.tel-miembros .con-avatar { width: 20px; height: 20px; font-size: 9.5px; box-shadow: 0 0 0 1.5px rgba(10, 10, 10, .12); }
 
 .con-demo .tel-titulo { font-size: 11px; margin-bottom: 4px; }
 

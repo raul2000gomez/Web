@@ -172,6 +172,26 @@ body {
   font-size: 14px;
 }
 
+/* Enlace al otro apartado («Cosas con» ↔ «Cosas de»). */
+.cruce {
+  max-width: 52ch;
+  margin-top: 28px;
+  color: var(--tinta-3);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.cruce a {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--filete-2);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--rapido) ease;
+}
+
+.cruce a:hover { text-decoration-color: var(--tinta); }
+
 .bloque {
   margin-top: clamp(48px, 8vw, 80px);
 }

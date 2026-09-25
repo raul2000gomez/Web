@@ -4,10 +4,11 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 ([cosas-app.netlify.app](https://cosas-app.netlify.app)). Dos partes:
 
 - **Portada** (`/`): explica cómo funciona la app, qué tiene y cómo se instala.
-- **Cosas con** y **Cosas de** (`/con/`): listas compartidas en tiempo real. «Cosas con Raúl»
-  es una lista con otra persona; «Cosas de trabajo» o «Cosas de viaje», un grupo de gente
-  alrededor de un tema. En los dos casos te da un enlace (`cosas.es/con/…` o `cosas.es/de/…`)
-  y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
+- **Cosas con** (`/con/`): una lista compartida con otra persona, «Cosas con Raúl».
+- **Cosas de** (`/de/`): un grupo de gente alrededor de un tema, «Cosas de trabajo» o «Cosas de viaje».
+
+Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.es/con/…` o
+`cosas.es/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
 
 Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se sube tal cual.
 
@@ -15,7 +16,9 @@ Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se 
 
 ```
 index.html            Portada
-con/index.html        Cosas con y Cosas de (una sola página; /con/ID y /de/ID abren la lista ID)
+con/index.html        Cosas con (/con/ID abre la lista ID)
+de/index.html         Cosas de (/de/ID abre el grupo ID). Misma lógica que /con/: js/con.js lee
+                      el tipo de la página en data-tipo. Si cambias algo en una, cámbialo en la otra.
 css/base.css          Colores, tipografía, botones, cabecera y pie (común)
 css/landing.css       Estilos de la portada
 css/con.css           Estilos de Cosas con
@@ -26,7 +29,7 @@ js/almacen-local.js     Guardado en el navegador cuando Firebase no está config
 js/util.js            Utilidades (paleta, tono, identificadores…)
 firebase-config.js    ← Aquí van los datos de tu proyecto de Firebase
 firestore.rules       Reglas de seguridad para pegar en Firebase
-netlify.toml          Redirecciones (/con/* → /con/index.html) y cabeceras
+netlify.toml          Redirecciones (/con/* y /de/* a su página) y cabeceras
 icons/                Favicon, icono de iOS e imagen para redes
 ```
 
@@ -99,7 +102,7 @@ listas son las reglas de `firestore.rules`.
 ## Probar en el ordenador
 
 Cualquier servidor estático vale. Para que `/con/ID` y `/de/ID` funcionen en local hace falta
-servir `con/index.html` en esas rutas, como hace Netlify. Con Node:
+servir `con/index.html` y `de/index.html` en esas rutas, como hace Netlify. Con Node:
 
 ```sh
 npx serve --single .        # o: npx http-server .

@@ -10,10 +10,10 @@
   to = "/con/index.html"
   status = 200
 
-# «Cosas de …» comparte página con «Cosas con …»: /de/ID abre la misma lista.
+# «Cosas de …» tiene su propia página; /de/ID abre el grupo ID.
 [[redirects]]
   from = "/de/*"
-  to = "/con/index.html"
+  to = "/de/index.html"
   status = 200
 
 [[headers]]

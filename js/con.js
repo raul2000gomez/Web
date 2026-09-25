@@ -14,7 +14,7 @@ const el = {
   app: $('#app'),
   estado: $('#estado'), estadoTexto: $('#estado-texto'),
   formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'), crearTexto: $('#crear-texto'),
-  tipoLista: $('#tipo-lista'), tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'),
+  tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'), cruce: $('#cruce'), tituloMias: $('#titulo-mis-listas'),
   bloqueMias: $('#bloque-mis-listas'), misListas: $('#mis-listas'),
   cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
@@ -36,19 +36,26 @@ let almacen = null;
 let usuario = null;
 let perfil = null;
 let pendiente = null;          // { accion: 'crear', nombre, tipo } | { accion: 'unirse', id, lista }
-let tipoElegido = 'con';       // «con» (con una persona) o «de» (un grupo alrededor de un tema)
+
+/* Cada apartado es una página: /con/ (con una persona) y /de/ (un grupo alrededor de un tema).
+   La página declara su tipo en data-tipo; la lógica es la misma. */
+const tipoPagina = el.app.dataset.tipo === 'de' ? 'de' : 'con';
+const RUTA_INICIO = `/${tipoPagina}/`;
+const otroTipo = tipoPagina === 'de' ? 'con' : 'de';
 
 /* Textos que cambian según el tipo. */
 const TEXTOS = {
   con: {
     titulo: 'Cosas con', ejemplo: 'Raúl', boton: 'Crear la lista',
     ayuda: 'Con una persona. Escribe con quién y crea la lista: te damos un enlace para pasárselo y, al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.',
-    creada: 'Lista creada. Invita a alguien con el enlace.', etiqueta: '¿Con quién es la lista?'
+    creada: 'Lista creada. Invita a alguien con el enlace.', etiqueta: '¿Con quién es la lista?',
+    mias: 'Tus listas', otras: n => n === 1 ? 'Tienes 1 lista en Cosas con' : `Tienes ${n} listas en Cosas con`, ir: 'Ir a Cosas con'
   },
   de: {
     titulo: 'Cosas de', ejemplo: 'trabajo', boton: 'Crear el grupo',
     ayuda: 'Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje», «Cosas de la boda». Comparte el enlace con quien quieras y todos ven y añaden las cosas de ese tema.',
-    creada: 'Grupo creado. Comparte el enlace con la gente.', etiqueta: '¿De qué va la lista?'
+    creada: 'Grupo creado. Comparte el enlace con la gente.', etiqueta: '¿De qué va el grupo?',
+    mias: 'Tus grupos', otras: n => n === 1 ? 'Tienes 1 grupo en Cosas de' : `Tienes ${n} grupos en Cosas de`, ir: 'Ir a Cosas de'
   }
 };
 let listaId = null;
@@ -101,11 +108,6 @@ function idDeUrl() {
   return esId(q) ? q : null;
 }
 
-/* Al entrar por /de/ se preselecciona «Cosas de». */
-function tipoDeUrl() {
-  return /^\/de\/?$/.test(location.pathname) ? 'de' : null;
-}
-
 function ir(ruta) {
   history.pushState({}, '', ruta);
   enrutar();
@@ -143,9 +145,9 @@ async function enrutar() {
 /* ---------- Inicio ---------- */
 
 function mostrarInicio() {
-  document.title = 'Cosas con · Cosas de · listas compartidas';
+  document.title = tipoPagina === 'de' ? 'Cosas de · grupos por tema' : 'Cosas con · listas compartidas';
   mostrar('inicio');
-  elegirTipo(tipoDeUrl() || tipoElegido);
+  elegirTipo(tipoPagina);
   medir();
   escucharMias();
   pintarCuenta();
@@ -165,32 +167,24 @@ function marcarConmutador(conmutador, tipo) {
 }
 
 function elegirTipo(tipo) {
-  tipoElegido = tipo === 'de' ? 'de' : 'con';
-  const t = TEXTOS[tipoElegido];
-  marcarConmutador(el.tipoLista, tipoElegido);
+  const t = TEXTOS[tipo];
   el.tituloFijo.textContent = t.titulo;
   el.campoCon.placeholder = t.ejemplo;
   el.campoCon.setAttribute('aria-label', t.etiqueta);
-  el.campoCon.setAttribute('autocapitalize', tipoElegido === 'con' ? 'words' : 'sentences');
+  el.campoCon.setAttribute('autocapitalize', tipo === 'con' ? 'words' : 'sentences');
   el.inicioAyuda.textContent = t.ayuda;
   el.crearTexto.textContent = t.boton;
+  el.tituloMias.textContent = t.mias;
   medir();
 }
-
-el.tipoLista.addEventListener('click', ev => {
-  const b = ev.target.closest('.conmutador-opcion');
-  if (!b) return;
-  elegirTipo(b.dataset.tipo);
-  el.campoCon.focus();
-});
 
 el.formCrear.addEventListener('submit', async ev => {
   ev.preventDefault();
   const nombre = limpiar(el.campoCon.value, 40);
   if (!nombre) return;
-  pendiente = { accion: 'crear', nombre, tipo: tipoElegido };
+  pendiente = { accion: 'crear', nombre, tipo: tipoPagina };
   if (!perfil || !perfil.nombre) return pedirNombre(null);
-  await crearLista(nombre, tipoElegido);
+  await crearLista(nombre, tipoPagina);
 });
 
 async function crearLista(nombre, tipo) {
@@ -211,7 +205,11 @@ async function crearLista(nombre, tipo) {
 
 function escucharMias() {
   if (pararMias) { pararMias(); pararMias = null; }
-  pararMias = almacen.escucharMisListas(listas => {
+  pararMias = almacen.escucharMisListas(todas => {
+    /* Cada apartado enseña las suyas; de las del otro, solo cuántas hay, con su enlace. */
+    const listas = todas.filter(l => tipoDe(l) === tipoPagina);
+    const otras = todas.length - listas.length;
+    pintarCruce(otras);
     el.bloqueMias.hidden = !listas.length;
     el.misListas.innerHTML = '';
     listas.forEach(l => {
@@ -233,6 +231,22 @@ function escucharMias() {
       el.misListas.appendChild(li);
     });
   });
+}
+
+function pintarCruce(otras) {
+  const t = TEXTOS[otroTipo];
+  el.cruce.innerHTML = '';
+  if (otras > 0) {
+    el.cruce.append(t.otras(otras) + '. ');
+  } else {
+    el.cruce.append(otroTipo === 'de'
+      ? '¿Un grupo de gente alrededor de un tema, como «Cosas de viaje»? '
+      : '¿Una lista con una sola persona, como «Cosas con Raúl»? ');
+  }
+  const a = document.createElement('a');
+  a.href = `/${otroTipo}/`;
+  a.innerHTML = `${t.ir} <span aria-hidden="true">→</span>`;
+  el.cruce.appendChild(a);
 }
 
 function pintarCuenta() {
@@ -356,7 +370,7 @@ function abrirLista(id, datos) {
 
   pararLista = almacen.escucharLista(id, l => {
     if (!l) { cerrarLista(); document.title = 'Cosas con'; mostrar('no-existe'); return; }
-    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir('/con/'); toast('Ya no estás en esa lista.'); return; }
+    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast('Ya no estás en esa lista.'); return; }
     lista = l;
     pintarLista(l);
   });
@@ -531,7 +545,7 @@ el.formCosa.addEventListener('submit', async ev => {
   catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosa.value = texto; el.enviar.disabled = false; }
 });
 
-el.volver.addEventListener('click', ev => { ev.preventDefault(); ir('/con/'); });
+el.volver.addEventListener('click', ev => { ev.preventDefault(); ir(RUTA_INICIO); });
 
 /* ---------- Invitar ---------- */
 
@@ -682,7 +696,7 @@ el.salirLista.addEventListener('click', () => confirmarDosVeces(el.salirLista, '
     cerrarHoja();
     cerrarLista();
     await almacen.salir(id);
-    ir('/con/');
+    ir(RUTA_INICIO);
     toast('Has salido de la lista', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo salir.'); enrutar(); }
 }));
@@ -694,7 +708,7 @@ el.borrarLista.addEventListener('click', () => confirmarDosVeces(el.borrarLista,
     cerrarHoja();
     cerrarLista();
     await almacen.borrarLista(id);
-    ir('/con/');
+    ir(RUTA_INICIO);
     toast('Lista borrada', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo borrar.'); enrutar(); }
 }));
