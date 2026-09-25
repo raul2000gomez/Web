@@ -109,17 +109,17 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
-  border-bottom: 3px solid var(--azul);
+  border-bottom: 3px solid var(--azul-texto);
   outline: none;
   background: transparent;
-  color: var(--azul);
+  color: var(--azul-texto);
   font: inherit;
   letter-spacing: inherit;
-  caret-color: var(--azul);
+  caret-color: var(--azul-texto);
   transition: border-color var(--rapido) ease;
 }
 
-.con-campo::placeholder { color: color-mix(in srgb, var(--azul) 38%, transparent); opacity: 1; }
+.con-campo::placeholder { color: color-mix(in srgb, var(--azul-texto) 55%, transparent); opacity: 1; }
 
 .con-campo:focus { border-bottom-style: solid; }
 
