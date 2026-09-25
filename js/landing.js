@@ -23,8 +23,21 @@
       entradas.forEach(function (e) {
         if (e.isIntersecting) { e.target.classList.add('visto'); observador.unobserve(e.target); }
       });
+      /* Si se ha saltado de golpe (un enlace del menú, un scroll rápido), lo que quedó
+         atrás también se muestra: nada se queda invisible por encima de la pantalla. */
+      document.querySelectorAll('.revelar.pendiente').forEach(function (el) {
+        if (el.getBoundingClientRect().top < window.innerHeight) { el.classList.add('visto'); observador.unobserve(el); }
+      });
     }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-    revelables.forEach(function (el) { observador.observe(el); });
+    revelables.forEach(function (el) {
+      /* Solo se esconde lo que aún no se ve: lo que ya está en pantalla se queda como está. */
+      if (el.getBoundingClientRect().top > window.innerHeight * 0.92) {
+        el.classList.add('pendiente');
+        observador.observe(el);
+      } else {
+        el.classList.add('visto');
+      }
+    });
   } else {
     revelables.forEach(function (el) { el.classList.add('visto'); });
   }

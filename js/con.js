@@ -490,8 +490,20 @@ async function invitar() {
 }
 
 async function copiar(texto) {
-  try { await navigator.clipboard.writeText(texto); toast('Enlace copiado', { icono: true }); }
-  catch (e) { window.prompt('Copia el enlace:', texto); }
+  try { await navigator.clipboard.writeText(texto); toast('Enlace copiado', { icono: true }); return; }
+  catch (e) { /* Sin permiso: se intenta a la antigua. */ }
+  try {
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    if (ok) { toast('Enlace copiado', { icono: true }); return; }
+  } catch (e) { /* Tampoco. */ }
+  toast('No se pudo copiar. El enlace está en los ajustes de la lista.');
 }
 
 el.invitar.addEventListener('click', invitar);
@@ -574,9 +586,23 @@ el.formAjustes.addEventListener('submit', async ev => {
   } catch (e) { console.error(e); toast('No se pudo guardar.'); }
 });
 
-el.salirLista.addEventListener('click', async () => {
+/* Las acciones delicadas se confirman tocando dos veces el mismo botón: sin diálogos del navegador. */
+function confirmarDosVeces(boton, textoOriginal, alConfirmar) {
+  if (boton.dataset.confirmando) {
+    delete boton.dataset.confirmando;
+    boton.textContent = textoOriginal;
+    alConfirmar();
+    return;
+  }
+  boton.dataset.confirmando = '1';
+  boton.textContent = '¿Seguro? Toca otra vez';
+  setTimeout(() => {
+    if (boton.dataset.confirmando) { delete boton.dataset.confirmando; boton.textContent = textoOriginal; }
+  }, 4000);
+}
+
+el.salirLista.addEventListener('click', () => confirmarDosVeces(el.salirLista, 'Salir de la lista', async () => {
   if (!listaId) return;
-  if (!window.confirm(`¿Salir de «${tituloDe(lista)}»? Podrás volver a entrar con el enlace.`)) return;
   const id = listaId;
   try {
     cerrarHoja();
@@ -585,11 +611,10 @@ el.salirLista.addEventListener('click', async () => {
     ir('/con/');
     toast('Has salido de la lista', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo salir.'); enrutar(); }
-});
+}));
 
-el.borrarLista.addEventListener('click', async () => {
+el.borrarLista.addEventListener('click', () => confirmarDosVeces(el.borrarLista, 'Borrar la lista para todos', async () => {
   if (!listaId) return;
-  if (!window.confirm(`¿Borrar «${tituloDe(lista)}» para todos? No se puede deshacer.`)) return;
   const id = listaId;
   try {
     cerrarHoja();
@@ -598,7 +623,7 @@ el.borrarLista.addEventListener('click', async () => {
     ir('/con/');
     toast('Lista borrada', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo borrar.'); enrutar(); }
-});
+}));
 
 /* ---------- Estado ---------- */
 

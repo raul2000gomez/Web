@@ -279,7 +279,7 @@ svg.icono {
 
 .cabecera {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   padding: 14px var(--margen);
   transition: background-color var(--medio) ease, box-shadow var(--medio) ease, backdrop-filter var(--medio) ease;
@@ -391,11 +391,16 @@ svg.icono {
 
 /* ---------- Aparecer al hacer scroll ---------- */
 
+/* Visibles de entrada; landing.js oculta solo los que quedan por debajo de la pantalla y los
+   revela al llegar. Así la página está completa aunque no haya JavaScript. */
 .revelar {
-  opacity: 0;
-  transform: translateY(18px);
   transition: opacity var(--lento) var(--suave), transform var(--lento) var(--suave);
   transition-delay: var(--retardo, 0s);
+}
+
+.revelar.pendiente {
+  opacity: 0;
+  transform: translateY(18px);
 }
 
 .revelar.visto {
@@ -461,5 +466,5 @@ svg.icono {
     transition-duration: .01ms !important;
     transition-delay: 0s !important;
   }
-  .revelar { opacity: 1; transform: none; }
+  .revelar.pendiente { opacity: 1; transform: none; }
 }

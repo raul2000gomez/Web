@@ -13,7 +13,7 @@ body {
 
 .con-cabecera {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   padding: 14px var(--margen);
 }
@@ -312,7 +312,7 @@ body {
 
 .lista-cabecera {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 10;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 48px;
