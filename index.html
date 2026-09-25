@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Cosas · Apunta las cosas. Sin más.</title>
+  <meta name="description" content="Cosas es una app sencilla para apuntar lo que tienes que hacer: escribe o dicta, tacha lo hecho y agrúpalo por colores. Gratis, sin cuenta y sin conexión. Con «Cosas con» creas listas compartidas en tiempo real.">
+  <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://cosas.es/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Cosas · Apunta las cosas. Sin más.">
+  <meta property="og:description" content="Una app sencilla para apuntar lo que tienes que hacer. Gratis, sin cuenta y sin conexión. Y con «Cosas con», listas compartidas en tiempo real.">
+  <meta property="og:url" content="https://cosas.es/">
+  <meta property="og:image" content="https://cosas.es/icons/og.png">
+  <meta property="og:locale" content="es_ES">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..800;1,400..800&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/landing.css">
+</head>
+<body>
+
+  <header class="cabecera" id="cabecera">
+    <div class="cabecera-interior">
+      <a class="marca" href="/" aria-label="Cosas, inicio">
+        <span class="marca-icono" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7 10 16.5 5 12"/></svg>
+        </span>
+        Cosas
+      </a>
+      <nav class="menu" aria-label="Secciones">
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#caracteristicas">Qué tiene</a>
+        <a href="#instalar">Instalar</a>
+        <a href="#cosas-con">Cosas con</a>
+      </nav>
+      <a class="boton boton-primario" href="https://cosas-app.netlify.app" target="_blank" rel="noopener">
+        Abrir la app
+        <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ====== Portada ====== -->
+    <section class="hero" id="inicio">
+      <div class="hero-interior">
+        <div class="hero-texto">
+          <p class="antetitulo">Una app para el móvil</p>
+          <h1 class="hero-titulo">Apunta las cosas.<br><span class="acento">Sin más.</span></h1>
+          <p class="hero-entradilla">Cosas hace una sola cosa: recordarte lo que tienes que hacer. Escríbelas o díctalas, táchalas cuando estén hechas y agrúpalas como quieras.</p>
+          <div class="hero-acciones">
+            <a class="boton boton-azul" href="https://cosas-app.netlify.app" target="_blank" rel="noopener">
+              Abrir Cosas
+              <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="boton boton-secundario" href="/con/">Crear una lista compartida</a>
+          </div>
+          <ul class="hero-notas" aria-label="Lo esencial">
+            <li><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>Gratis</li>
+            <li><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>Sin cuenta</li>
+            <li><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>Funciona sin conexión</li>
+            <li><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>Se instala en un toque</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual">
+          <div class="telefono" data-telefono data-tono="oscuro" aria-label="Demostración de la app Cosas" role="img">
+            <div class="pantalla">
+              <div class="tel-esquinas" aria-hidden="true">
+                <span class="tel-redondo"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span>
+                <span class="tel-redondo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+              </div>
+              <ul class="tel-lista" id="demo-lista" aria-hidden="true"></ul>
+              <div class="tel-barra" aria-hidden="true">
+                <div class="tel-pildora" id="demo-pildora">
+                  <span class="tel-campo" id="demo-campo"></span>
+                  <span class="tel-ranura">
+                    <span class="tel-micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span>
+                    <span class="tel-enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="muestras" data-muestras role="group" aria-label="Color de fondo de la app">
+            <button class="muestra" style="--muestra:#2F6FED" data-color="#2F6FED" aria-label="Azul" aria-pressed="true"></button>
+            <button class="muestra" style="--muestra:#1E2A44" data-color="#1E2A44" aria-label="Azul noche" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#1BA39C" data-color="#1BA39C" aria-label="Turquesa" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#2E8B57" data-color="#2E8B57" aria-label="Verde" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#F2B705" data-color="#F2B705" aria-label="Amarillo" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#F2711C" data-color="#F2711C" aria-label="Naranja" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#EF5B5B" data-color="#EF5B5B" aria-label="Coral" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#E85D9E" data-color="#E85D9E" aria-label="Rosa" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#7A4FD6" data-color="#7A4FD6" aria-label="Morado" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#EADFCB" data-color="#EADFCB" aria-label="Arena" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#FFFFFF" data-color="#FFFFFF" aria-label="Blanco" aria-pressed="false"></button>
+            <button class="muestra" style="--muestra:#111111" data-color="#111111" aria-label="Negro" aria-pressed="false"></button>
+            <p class="muestras-nota">Toca un color: la app se pinta entera de él.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Cómo funciona ====== -->
+    <section class="seccion" id="como-funciona">
+      <div class="seccion-interior">
+        <p class="antetitulo revelar">Cómo funciona</p>
+        <h2 class="titulo-seccion revelar" style="--retardo:.05s">Tres gestos. <span class="acento">Nada que aprender.</span></h2>
+        <p class="entradilla revelar" style="--retardo:.1s">Abres la app y ya estás escribiendo. No hay menús que explorar ni ajustes que entender antes de empezar.</p>
+
+        <ol class="pasos">
+          <li class="paso revelar">
+            <span class="paso-numero" aria-hidden="true"></span>
+            <div class="paso-pantalla" aria-hidden="true">
+              <div class="tel-pildora con-texto">
+                <span class="tel-campo">Comprar pan</span>
+                <span class="tel-ranura">
+                  <span class="tel-micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span>
+                  <span class="tel-enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></span>
+                </span>
+              </div>
+            </div>
+            <div>
+              <h3>Escribe una cosa</h3>
+              <p>La pantalla principal es solo una barra para escribir. Pulsa la flecha y queda guardada. Si prefieres hablar, el micrófono la escribe por ti.</p>
+            </div>
+          </li>
+          <li class="paso revelar" style="--retardo:.1s">
+            <span class="paso-numero" aria-hidden="true"></span>
+            <div class="paso-pantalla" aria-hidden="true">
+              <div class="tel-fila marcable">
+                <span class="tel-check"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Llamar a Marta</span>
+                <span class="tel-borrar"><svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5"/></svg></span>
+              </div>
+              <div class="tel-fila">
+                <span class="tel-check"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Regar las plantas</span>
+                <span class="tel-borrar"><svg viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5"/></svg></span>
+              </div>
+            </div>
+            <div>
+              <h3>Táchala cuando esté hecha</h3>
+              <p>Un toque en el círculo y la cosa se tacha y baja al final. La papelera la elimina; si te arrepientes, «Deshacer» está ahí un momento.</p>
+            </div>
+          </li>
+          <li class="paso revelar" style="--retardo:.2s">
+            <span class="paso-numero" aria-hidden="true"></span>
+            <div class="paso-pantalla grupo" aria-hidden="true">
+              <p class="tel-titulo">Viaje a Lisboa</p>
+              <div class="tel-fila">
+                <span class="tel-check"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Reservar hotel</span>
+              </div>
+              <div class="tel-fila">
+                <span class="tel-check"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Cargador del móvil</span>
+              </div>
+            </div>
+            <div>
+              <h3>Agrúpalas por colores</h3>
+              <p>Crea grupos como «Compra», «Casa» o «Viaje» y dales un color. Al abrir uno, la pantalla entera se pinta de su color: sabes dónde estás sin leer.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ====== Características ====== -->
+    <section class="seccion caracteristicas" id="caracteristicas">
+      <div class="seccion-interior">
+        <p class="antetitulo revelar">Qué tiene</p>
+        <h2 class="titulo-seccion revelar" style="--retardo:.05s">Lo justo, <span class="acento">bien hecho.</span></h2>
+        <p class="entradilla revelar" style="--retardo:.1s">Cada detalle está pensado para que apuntar algo cueste menos que recordarlo.</p>
+
+        <div class="rejilla">
+          <article class="tarjeta tarjeta-4 tarjeta-color revelar">
+            <div class="tarjeta-color-cuerpo">
+              <div>
+                <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2v-1a2 2 0 0 1 2-2h1a4 4 0 0 0 4-4c0-5-4-9-9-9z"/><circle cx="7.5" cy="11.5" r="1.2"/><circle cx="10.5" cy="7.5" r="1.2"/><circle cx="15.5" cy="7.5" r="1.2"/></svg></span>
+                <h3 style="margin-top:14px">Tu color, tu app</h3>
+                <p style="margin-top:8px">Elige el color de fondo entre doce, o uno cualquiera con la rueda. La app decide sola si el texto va en blanco o en negro para que siempre se lea bien.</p>
+                <div class="muestras" data-muestras role="group" aria-label="Color de fondo de la app" style="margin-top:18px">
+                  <button class="muestra" style="--muestra:#2F6FED" data-color="#2F6FED" aria-label="Azul" aria-pressed="true"></button>
+                  <button class="muestra" style="--muestra:#1E2A44" data-color="#1E2A44" aria-label="Azul noche" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#1BA39C" data-color="#1BA39C" aria-label="Turquesa" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#2E8B57" data-color="#2E8B57" aria-label="Verde" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#F2B705" data-color="#F2B705" aria-label="Amarillo" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#F2711C" data-color="#F2711C" aria-label="Naranja" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#EF5B5B" data-color="#EF5B5B" aria-label="Coral" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#E85D9E" data-color="#E85D9E" aria-label="Rosa" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#7A4FD6" data-color="#7A4FD6" aria-label="Morado" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#EADFCB" data-color="#EADFCB" aria-label="Arena" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#FFFFFF" data-color="#FFFFFF" aria-label="Blanco" aria-pressed="false"></button>
+                  <button class="muestra" style="--muestra:#111111" data-color="#111111" aria-label="Negro" aria-pressed="false"></button>
+                </div>
+              </div>
+              <div class="mini-telefono" data-telefono data-tono="oscuro" aria-hidden="true">
+                <div class="tel-esquinas">
+                  <span class="tel-redondo"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span>
+                  <span class="tel-redondo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+                </div>
+                <div class="tel-pildora">
+                  <span class="tel-campo"></span>
+                  <span class="tel-ranura"><span class="tel-micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span></span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.08s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8.5a15 15 0 0 1 20 0M5.5 12a10 10 0 0 1 13 0M9 15.5a5 5 0 0 1 6 0M12 19h.01M3 3l18 18"/></svg></span>
+            <h3>Funciona sin conexión</h3>
+            <p>En el metro, en el avión o en el pueblo. No necesita internet para nada: todo se guarda en tu móvil al instante.</p>
+            <div class="escena escena-offline" aria-hidden="true">
+              <span class="avion"><svg class="icono" viewBox="0 0 24 24"><path d="M10.5 13.5 3 11l1.5-1.5L11 11l5-5a2 2 0 1 1 3 3l-5 5 1.5 6.5L14 22l-2.5-7.5L8 18l-.5 3L6 22l-1-4-4-1 1-1.5 3-.5z"/></svg></span>
+              <span>Sin cobertura. Todo sigue igual.</span>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.12s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 15v2"/></svg></span>
+            <h3>Sin cuenta ni registro</h3>
+            <p>No pide correo, ni contraseña, ni permisos. Tus cosas se quedan en tu dispositivo y no se envían a ningún sitio.</p>
+            <div class="escena escena-privado" aria-hidden="true">
+              <span class="escena-icono-grande"><svg class="icono" viewBox="0 0 24 24"><path d="M12 3 4 6v5c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></span>
+              <span>Tus datos, solo en tu móvil.</span>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.16s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span>
+            <h3>Dictado por voz</h3>
+            <p>Pulsa el micrófono y di la cosa. Aparece escrita mientras hablas; solo tienes que guardarla.</p>
+            <div class="escena escena-voz" aria-hidden="true">
+              <div class="tel-pildora con-texto">
+                <span class="tel-campo">Pedir cita en el dentista</span>
+                <span class="ondas" style="margin-right:6px"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i></span>
+              </div>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.2s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2.5"/><rect x="13" y="3" width="8" height="8" rx="2.5"/><rect x="3" y="13" width="8" height="8" rx="2.5"/><rect x="13" y="13" width="8" height="8" rx="2.5"/></svg></span>
+            <h3>Grupos con color</h3>
+            <p>Mete las cosas en grupos y despliégalos desde la lista con el ojo. Cada grupo puede tener su color y su propia pantalla.</p>
+            <div class="escena escena-grupos" aria-hidden="true">
+              <div class="tel-fila grupo-fila" style="--color-grupo:#F2B705">
+                <span class="tel-check"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></span>
+                <span class="tel-texto"><b>Compra</b></span>
+              </div>
+              <div class="tel-fila anidada">
+                <span class="tel-check" style="background:#F1F3F5;color:#6C757D"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Aceite de oliva</span>
+              </div>
+              <div class="tel-fila anidada">
+                <span class="tel-check" style="background:#F1F3F5;color:#6C757D"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg></span>
+                <span class="tel-texto">Tomates</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.24s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>
+            <h3>Deshacer, siempre</h3>
+            <p>Borra sin miedo. Cada vez que eliminas algo, un aviso te deja recuperarlo con un toque.</p>
+            <div class="escena" aria-hidden="true" style="--fondo:#E85D9E; display:flex; justify-content:center">
+              <span class="escena-toast"><svg class="icono" viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg>Eliminada<b>Deshacer</b></span>
+            </div>
+          </article>
+
+          <article class="tarjeta tarjeta-2 revelar" style="--retardo:.28s">
+            <span class="tarjeta-icono"><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 6v7M9 10.5l3 3 3-3M10 18h4"/></svg></span>
+            <h3>Se instala como una app</h3>
+            <p>Sin tiendas ni descargas. Desde el menú del navegador la añades a la pantalla de inicio y se abre como cualquier otra app.</p>
+            <div class="escena" aria-hidden="true" style="--fondo:#2F6FED">
+              <div class="tel-pildora"><span class="tel-campo" style="font-weight:600;text-align:center">Convertir en aplicación</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Instalar ====== -->
+    <section class="seccion" id="instalar">
+      <div class="seccion-interior instalar-interior">
+        <div>
+          <p class="antetitulo revelar">Instalar</p>
+          <h2 class="titulo-seccion revelar" style="--retardo:.05s">En tu pantalla de inicio <span class="acento">en un minuto.</span></h2>
+          <p class="entradilla revelar" style="--retardo:.1s">Cosas es una aplicación web: se instala desde el navegador, ocupa casi nada y se actualiza sola. Abre <a href="https://cosas-app.netlify.app" target="_blank" rel="noopener" style="text-decoration:underline;text-underline-offset:3px">cosas-app.netlify.app</a> en el móvil y sigue los pasos.</p>
+        </div>
+        <div class="revelar" style="--retardo:.15s">
+          <div class="pestanas" role="tablist" aria-label="Sistema del móvil">
+            <span class="pestana-indicador" aria-hidden="true"></span>
+            <button class="pestana" role="tab" id="pestana-iphone" aria-selected="true" aria-controls="panel-iphone">iPhone y iPad</button>
+            <button class="pestana" role="tab" id="pestana-android" aria-selected="false" aria-controls="panel-android">Android</button>
+          </div>
+          <div class="paneles">
+            <div class="panel activo" role="tabpanel" id="panel-iphone" aria-labelledby="pestana-iphone">
+              <ol class="lista-pasos">
+                <li><span>Abre la app en Safari y pulsa <b>Compartir</b></span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 6.5 12 3l4 3.5M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/></svg></li>
+                <li><span>Elige <b>«Añadir a pantalla de inicio»</b></span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
+                <li><span>Pulsa <b>«Añadir»</b>. Ya está.</span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg></li>
+              </ol>
+              <p class="instalar-nota">Si no ves Compartir, búscalo en el menú de Safari, junto a la barra de direcciones. La app instalada empieza vacía: lo que ya has apuntado se queda en Safari.</p>
+            </div>
+            <div class="panel" role="tabpanel" id="panel-android" aria-labelledby="pestana-android" hidden>
+              <ol class="lista-pasos">
+                <li><span>Abre la app en Chrome y toca el menú <b>⋮</b></span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true" style="stroke-width:3"><path d="M12 5h.01M12 12h.01M12 19h.01"/></svg></li>
+                <li><span>Elige <b>«Instalar aplicación»</b> o «Añadir a pantalla de inicio»</span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8.5v7M8.5 12h7"/></svg></li>
+                <li><span>Confirma. Ya está.</span><svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg></li>
+              </ol>
+              <p class="instalar-nota">Dentro de la app, en Ajustes, el botón «Convertir en aplicación» te lleva al mismo sitio. Si en el menú pone «Abrir Cosas», ya la tienes instalada.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Cosas con ====== -->
+    <section class="seccion" id="cosas-con" style="padding-top:0">
+      <div class="seccion-interior">
+        <div class="con-anuncio revelar">
+          <div class="con-anuncio-interior">
+            <div>
+              <p class="antetitulo">Nuevo · Listas compartidas</p>
+              <h2 class="titulo-seccion">Cosas con <span class="nombre-rotando" id="nombre-rotando" aria-live="off"><span class="activo">Raúl</span><span>mamá</span><span>Lucía</span><span>los del piso</span><span>el equipo</span></span></h2>
+              <p class="entradilla">Una lista con otra persona, o con varias. Tú añades desde tu móvil y ellos lo ven al momento en el suyo. Sin instalar nada: basta un enlace.</p>
+              <div class="hero-acciones">
+                <a class="boton boton-primario" href="/con/">
+                  Crear una lista
+                  <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              </div>
+            </div>
+            <div class="con-demo" aria-hidden="true" id="con-demo">
+              <div class="mini-telefono" data-tono="claro">
+                <p class="tel-titulo">Cosas con Raúl</p>
+                <div class="tel-lista-con"></div>
+                <div class="tel-pildora"><span class="tel-campo"></span></div>
+              </div>
+              <div class="mini-telefono" data-tono="claro">
+                <p class="tel-titulo">Cosas con Ana</p>
+                <div class="tel-lista-con"></div>
+                <div class="tel-pildora"><span class="tel-campo"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="pie">
+    <div class="pie-interior">
+      <div>
+        <a class="marca" href="/">
+          <span class="marca-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7 10 16.5 5 12"/></svg></span>
+          Cosas
+        </a>
+        <p class="pie-lema">Apunta las cosas. Sin más.</p>
+      </div>
+      <nav class="pie-enlaces" aria-label="Pie">
+        <a href="https://cosas-app.netlify.app" target="_blank" rel="noopener">Abrir la app</a>
+        <a href="/con/">Cosas con</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#instalar">Instalar</a>
+      </nav>
+      <p class="pie-nota">cosas.es · Hecho con cariño en España.</p>
+    </div>
+  </footer>
+
+  <script src="/js/landing.js" defer></script>
+</body>
+</html>

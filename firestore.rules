@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// cosas.es · reglas de Firestore para «Cosas con»
+// Pégalas en Firebase → Firestore Database → Reglas y publica.
+//
+// Modelo:
+//   listas/{id}              { nombre, color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
+//   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por }
+//   usuarios/{uid}           { nombre, color, actualizado }
+//
+// Cualquiera que tenga el enlace (y esté identificado, aunque sea de forma anónima) puede
+// leer una lista y unirse a ella añadiéndose a sí mismo. Solo los miembros pueden ver y
+// tocar sus cosas. Solo quien la creó puede borrarla.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function identificado() {
+      return request.auth != null;
+    }
+
+    function esMiembro(datos) {
+      return identificado() && ('uids' in datos) && (request.auth.uid in datos.uids);
+    }
+
+    function textoValido(v, max) {
+      return v is string && v.size() > 0 && v.size() <= max;
+    }
+
+    function colorValido(v) {
+      return v is string && v.matches('^#[0-9A-Fa-f]{6}$');
+    }
+
+    // Unirse: la única diferencia con la lista anterior es que uno mismo aparece en «uids» y en «miembros».
+    function seUneASiMismo() {
+      let antes = resource.data;
+      let despues = request.resource.data;
+      return despues.diff(antes).affectedKeys().hasOnly(['uids', 'miembros'])
+        && despues.uids.hasAll(antes.uids)
+        && despues.uids.size() == antes.uids.size() + 1
+        && (request.auth.uid in despues.uids)
+        && despues.miembros.diff(antes.miembros).affectedKeys().hasOnly([request.auth.uid]);
+    }
+
+    match /listas/{id} {
+      allow get: if identificado();
+      allow list: if esMiembro(resource.data);
+
+      allow create: if identificado()
+        && request.resource.data.creadaPor == request.auth.uid
+        && request.resource.data.uids == [request.auth.uid]
+        && textoValido(request.resource.data.nombre, 40)
+        && colorValido(request.resource.data.color);
+
+      allow update: if identificado()
+        && textoValido(request.resource.data.nombre, 40)
+        && colorValido(request.resource.data.color)
+        && request.resource.data.creadaPor == resource.data.creadaPor
+        && (esMiembro(resource.data) || seUneASiMismo());
+
+      allow delete: if identificado() && resource.data.creadaPor == request.auth.uid;
+
+      match /cosas/{cid} {
+        function listaPadre() {
+          return get(/databases/$(database)/documents/listas/$(id)).data;
+        }
+
+        allow read: if esMiembro(listaPadre());
+
+        allow create: if esMiembro(listaPadre())
+          && textoValido(request.resource.data.texto, 500)
+          && request.resource.data.hecha is bool;
+
+        allow update: if esMiembro(listaPadre())
+          && textoValido(request.resource.data.texto, 500)
+          && request.resource.data.hecha is bool;
+
+        allow delete: if esMiembro(listaPadre());
+      }
+    }
+
+    match /usuarios/{uid} {
+      allow read, write: if identificado() && request.auth.uid == uid;
+    }
+  }
+}

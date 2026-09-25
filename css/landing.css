@@ -1,0 +1,874 @@
+/* cosas.es · portada */
+
+main { display: block; }
+
+.seccion {
+  padding: clamp(72px, 10vw, 128px) var(--margen);
+}
+
+.seccion-interior {
+  max-width: var(--ancho);
+  margin: 0 auto;
+}
+
+/* ---------- Teléfono (maqueta de la app) ---------- */
+
+/* Mismo modelo que la app: un color plano y una «tinta» según su luminancia. */
+.telefono {
+  --fondo: #2F6FED;
+  --tinta-t: #FFFFFF;
+  --tinta-t-suave: rgba(255, 255, 255, .82);
+  --superficie-t: rgba(0, 0, 0, .2);
+  --filete-t: rgba(255, 255, 255, .24);
+  position: relative;
+  width: 300px;
+  aspect-ratio: 300 / 620;
+  padding: 10px;
+  border-radius: 48px;
+  background: #0F1116;
+  box-shadow: var(--sombra-telefono);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--tinta-t);
+}
+
+.telefono[data-tono="claro"] {
+  --tinta-t: #0A0A0A;
+  --tinta-t-suave: rgba(10, 10, 10, .8);
+  --superficie-t: rgba(255, 255, 255, .55);
+  --filete-t: rgba(10, 10, 10, .16);
+}
+
+.telefono::before {
+  /* La isla dinámica, para que se lea como un móvil sin dibujar más. */
+  content: "";
+  position: absolute;
+  z-index: 3;
+  top: 22px;
+  left: 50%;
+  width: 84px;
+  height: 24px;
+  border-radius: 12px;
+  background: #0F1116;
+  transform: translateX(-50%);
+}
+
+.pantalla {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 58px 14px 14px;
+  border-radius: 40px;
+  overflow: hidden;
+  background: var(--fondo);
+  transition: background-color .35s ease;
+}
+
+.tel-esquinas {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tel-redondo {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+}
+
+.tel-redondo svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tel-lista {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  min-height: 0;
+}
+
+.tel-fila {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px;
+  border-radius: 24px;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+  font-size: 13.5px;
+  line-height: 1.3;
+  animation: tel-aparecer .32s var(--suave) both;
+}
+
+.tel-fila.hecha .tel-texto { opacity: .65; text-decoration: line-through; text-decoration-thickness: 1.2px; }
+
+.tel-fila.saliendo { opacity: 0; transform: scale(.96); transition: opacity .2s ease, transform .2s ease; }
+
+@keyframes tel-aparecer {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to { opacity: 1; transform: none; }
+}
+
+.tel-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #F1F3F5;
+  box-shadow: inset 0 0 0 1px rgba(10, 10, 10, .1);
+  color: #6C757D;
+  transition: background-color .22s ease, color .22s ease, transform .22s var(--suave);
+}
+
+.tel-check svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.tel-fila.hecha .tel-check { background: var(--verde); box-shadow: none; color: #fff; animation: tel-latido .36s var(--suave); }
+
+@keyframes tel-latido { 40% { transform: scale(1.18); } }
+
+.tel-texto { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tel-borrar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+}
+
+.tel-borrar svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.tel-barra { margin-top: 12px; }
+
+.tel-pildora {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 46px;
+  padding: 0 5px 0 17px;
+  border-radius: 23px;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+  transition: box-shadow .15s ease;
+}
+
+.tel-pildora.escribiendo { box-shadow: inset 0 0 0 2px var(--tinta-t); }
+
+.tel-campo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.tel-campo:empty::before { content: "Escribe una cosa…"; color: var(--tinta-t-suave); }
+
+.tel-pildora.escribiendo .tel-campo::after {
+  content: "";
+  display: inline-block;
+  width: 1.5px;
+  height: 15px;
+  margin-left: 1px;
+  vertical-align: -3px;
+  background: var(--tinta-t);
+  animation: tel-cursor 1s steps(2) infinite;
+}
+
+@keyframes tel-cursor { to { opacity: 0; } }
+
+.tel-ranura {
+  position: relative;
+  flex: none;
+  display: grid;
+  width: 36px;
+  height: 36px;
+}
+
+.tel-micro, .tel-enviar {
+  grid-area: 1 / 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  transition: opacity .15s ease, transform .15s ease;
+}
+
+.tel-micro svg, .tel-enviar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.tel-enviar { background: var(--tinta-t); color: var(--fondo); opacity: 0; transform: scale(.6); }
+.tel-enviar svg { stroke-width: 2.4; }
+
+.tel-pildora.con-texto .tel-micro { opacity: 0; transform: scale(.6); }
+.tel-pildora.con-texto .tel-enviar { opacity: 1; transform: none; }
+
+/* ---------- Portada (hero) ---------- */
+
+.hero {
+  position: relative;
+  padding: clamp(40px, 7vw, 96px) var(--margen) clamp(56px, 8vw, 112px);
+  overflow: hidden;
+}
+
+/* Un halo de color muy suave detrás del teléfono: sigue al color elegido. */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -10%;
+  right: -10%;
+  width: min(70vw, 780px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--halo, #2F6FED) 22%, transparent), transparent 70%);
+  filter: blur(30px);
+  transition: background .5s ease;
+  pointer-events: none;
+}
+
+.hero-interior {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  align-items: center;
+  gap: clamp(32px, 6vw, 80px);
+  max-width: var(--ancho);
+  margin: 0 auto;
+}
+
+.hero-texto > * { animation: subir .9s var(--suave) both; }
+.hero-texto > :nth-child(1) { animation-delay: .05s; }
+.hero-texto > :nth-child(2) { animation-delay: .15s; }
+.hero-texto > :nth-child(3) { animation-delay: .27s; }
+.hero-texto > :nth-child(4) { animation-delay: .38s; }
+.hero-texto > :nth-child(5) { animation-delay: .48s; }
+
+@keyframes subir {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hero-titulo {
+  font-size: clamp(46px, 7.2vw, 92px);
+  font-weight: 700;
+  line-height: .98;
+  letter-spacing: -.045em;
+  text-wrap: balance;
+}
+
+.hero-titulo .acento {
+  display: inline-block;
+  color: var(--azul);
+  font-size: 1.08em;
+  letter-spacing: -.01em;
+}
+
+.hero-entradilla {
+  max-width: 46ch;
+  margin-top: 26px;
+  color: var(--tinta-2);
+  font-size: clamp(17px, 1.8vw, 20px);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.hero-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.hero-notas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 30px;
+  color: var(--tinta-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.hero-notas li { display: inline-flex; align-items: center; gap: 8px; }
+
+.hero-notas .icono { width: 16px; height: 16px; color: var(--verde); stroke-width: 3; }
+
+.hero-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  animation: subir 1.1s var(--suave) .2s both;
+}
+
+.hero-visual .telefono {
+  animation: flotar 7s ease-in-out infinite;
+}
+
+@keyframes flotar {
+  50% { transform: translateY(-8px) rotate(-.6deg); }
+}
+
+/* Muestras de color (bajo el teléfono y en la tarjeta «Tu color»). */
+.muestras {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.muestra {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--muestra);
+  box-shadow: inset 0 0 0 1px var(--filete-2);
+  transition: transform var(--rapido) var(--suave), box-shadow var(--rapido) ease;
+}
+
+.muestra:hover { transform: scale(1.18); }
+
+.muestra[aria-pressed="true"] {
+  transform: scale(1.12);
+  box-shadow: inset 0 0 0 1px var(--filete-2), 0 0 0 3px var(--papel), 0 0 0 5px var(--tinta);
+}
+
+.muestras-nota {
+  width: 100%;
+  margin-top: 4px;
+  color: var(--tinta-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .hero-interior { grid-template-columns: 1fr; }
+  .hero-visual { order: 1; }
+  .hero-texto { order: 0; }
+  .telefono { width: min(280px, 78vw); }
+}
+
+/* ---------- Cómo funciona ---------- */
+
+.pasos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: clamp(40px, 6vw, 64px);
+  counter-reset: paso;
+}
+
+.paso {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 26px;
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-suave), inset 0 0 0 1px var(--filete);
+  counter-increment: paso;
+  transition: transform var(--medio) var(--suave), box-shadow var(--medio) ease;
+}
+
+.paso:hover { transform: translateY(-4px); }
+
+.paso-numero {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--azul-suave);
+  color: var(--azul);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.paso-numero::before { content: counter(paso); }
+
+.paso h3 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.paso p {
+  margin-top: 8px;
+  color: var(--tinta-2);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+/* Cada paso lleva una pequeña pantalla de la app, dibujada con CSS. */
+.paso-pantalla {
+  --fondo: #2F6FED;
+  --tinta-t: #fff;
+  --superficie-t: rgba(0, 0, 0, .2);
+  --filete-t: rgba(255, 255, 255, .24);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 150px;
+  padding: 14px;
+  border-radius: 20px;
+  background: var(--fondo);
+  color: var(--tinta-t);
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+}
+
+.paso-pantalla .tel-fila { animation: none; }
+.paso-pantalla p { margin: 0; color: inherit; font-size: inherit; }
+.paso-pantalla .tel-pildora { height: 44px; }
+.paso-pantalla .tel-campo:empty::before { content: none; }
+
+.paso-pantalla.grupo { --fondo: #1BA39C; --tinta-t: #0A0A0A; --superficie-t: rgba(255, 255, 255, .55); --filete-t: rgba(10, 10, 10, .16); }
+
+.paso-pantalla.grupo .tel-check { background: var(--fondo); color: var(--tinta-t); }
+
+.tel-titulo {
+  margin-bottom: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+
+/* En el paso 1, el micrófono late como en la app. */
+.paso-pantalla .tel-micro.escuchando { background: var(--tinta-t); color: var(--fondo); animation: latir 1.6s ease-in-out infinite; }
+
+@keyframes latir { 50% { transform: scale(.9); } }
+
+/* En el paso 2, el check se marca al pasar el ratón. */
+.paso:hover .tel-fila.marcable { --hecha: 1; }
+.tel-fila.marcable .tel-check { transition: background-color .25s ease, color .25s ease; }
+.paso:hover .tel-fila.marcable .tel-check { background: var(--verde); box-shadow: none; color: #fff; }
+.paso:hover .tel-fila.marcable .tel-texto { opacity: .65; text-decoration: line-through; }
+
+@media (max-width: 860px) {
+  .pasos { grid-template-columns: 1fr; }
+}
+
+/* ---------- Características (bento) ---------- */
+
+.caracteristicas { background: var(--papel-2); }
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: clamp(40px, 6vw, 64px);
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 26px;
+  border-radius: var(--radio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-suave), inset 0 0 0 1px var(--filete);
+  transition: transform var(--medio) var(--suave);
+}
+
+.tarjeta:hover { transform: translateY(-3px); }
+
+.tarjeta-2 { grid-column: span 2; }
+.tarjeta-3 { grid-column: span 3; }
+.tarjeta-4 { grid-column: span 4; }
+
+.tarjeta-icono {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--azul-suave);
+  color: var(--azul);
+}
+
+.tarjeta-icono .icono { width: 22px; height: 22px; }
+
+.tarjeta h3 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.tarjeta p {
+  color: var(--tinta-2);
+  font-size: 15.5px;
+  line-height: 1.55;
+}
+
+.tarjeta-color {
+  gap: 20px;
+}
+
+.tarjeta-color .muestras { justify-content: flex-start; gap: 10px; }
+.tarjeta-color .muestra { width: 34px; height: 34px; }
+
+.tarjeta-color-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: center;
+}
+
+.mini-telefono {
+  --fondo: #2F6FED;
+  --tinta-t: #fff;
+  --superficie-t: rgba(0, 0, 0, .2);
+  --filete-t: rgba(255, 255, 255, .24);
+  width: 118px;
+  aspect-ratio: 118 / 210;
+  padding: 10px;
+  border-radius: 24px;
+  background: var(--fondo);
+  color: var(--tinta-t);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 16px 36px -18px rgba(22, 24, 29, .5), inset 0 0 0 1px var(--filete-t);
+  transition: background-color .35s ease;
+  font-family: system-ui, sans-serif;
+}
+
+.mini-telefono[data-tono="claro"] { --tinta-t: #0A0A0A; --superficie-t: rgba(255, 255, 255, .55); --filete-t: rgba(10, 10, 10, .16); }
+
+.mini-telefono .tel-esquinas { position: static; }
+.mini-telefono .tel-redondo { width: 24px; height: 24px; }
+.mini-telefono .tel-redondo svg { width: 12px; height: 12px; }
+.mini-telefono .tel-pildora { height: 30px; padding: 0 4px 0 10px; font-size: 9px; }
+.mini-telefono .tel-campo { font-size: 9px; }
+.mini-telefono .tel-ranura { width: 22px; height: 22px; }
+.mini-telefono .tel-micro svg { width: 11px; height: 11px; }
+
+/* Mini escenas de las demás tarjetas. */
+.escena {
+  --fondo: #2F6FED;
+  --tinta-t: #fff;
+  --superficie-t: rgba(0, 0, 0, .2);
+  --filete-t: rgba(255, 255, 255, .24);
+  margin-top: auto;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--fondo);
+  color: var(--tinta-t);
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.escena .tel-fila { animation: none; }
+.escena .tel-fila + .tel-fila { margin-top: 6px; }
+
+.escena-grupos { --fondo: #7A4FD6; }
+.escena-grupos .tel-fila.grupo-fila { background: rgba(0, 0, 0, .42); }
+.escena-grupos .tel-check { background: var(--color-grupo, #F2B705); color: #0A0A0A; box-shadow: inset 0 0 0 1px rgba(10, 10, 10, .12); }
+.escena-grupos .tel-fila.anidada { margin-left: 16px; background: rgba(0, 0, 0, .14); }
+
+.escena-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 4px 0 12px;
+  border-radius: 20px;
+  background: #fff;
+  color: #0A0A0A;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .18);
+}
+
+.escena-toast .icono { width: 16px; height: 16px; color: var(--verde); stroke-width: 3; }
+
+.escena-toast b {
+  padding: 8px 12px 8px 10px;
+  margin-left: 4px;
+  border-left: 1px solid rgba(128, 128, 128, .35);
+  font-weight: 700;
+}
+
+.escena-offline {
+  --fondo: #1E2A44;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.escena-offline .avion {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+}
+
+.escena-offline .icono { width: 20px; height: 20px; }
+
+.escena-privado { --fondo: #2E8B57; display: flex; align-items: center; gap: 12px; }
+
+.escena-icono-grande {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+  flex: none;
+}
+
+.escena-icono-grande .icono { width: 20px; height: 20px; }
+
+.escena-voz { --fondo: #EF5B5B; }
+
+.ondas {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+}
+
+.ondas i {
+  display: block;
+  width: 4px;
+  height: 8px;
+  border-radius: 2px;
+  background: currentColor;
+  animation: onda 1.1s ease-in-out infinite;
+  animation-delay: calc(var(--i) * .12s);
+}
+
+@keyframes onda { 50% { height: 22px; } }
+
+@media (max-width: 960px) {
+  .rejilla { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tarjeta-2, .tarjeta-3, .tarjeta-4 { grid-column: span 2; }
+}
+
+@media (max-width: 560px) {
+  .rejilla { grid-template-columns: 1fr; }
+  .tarjeta-2, .tarjeta-3, .tarjeta-4 { grid-column: span 1; }
+  .tarjeta-color-cuerpo { grid-template-columns: 1fr; }
+  .mini-telefono { display: none; }
+}
+
+/* ---------- Instalar ---------- */
+
+.instalar-interior {
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: clamp(32px, 6vw, 80px);
+  align-items: start;
+}
+
+.pestanas {
+  position: relative;
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--papel-2);
+  box-shadow: inset 0 0 0 1px var(--filete);
+}
+
+.pestana {
+  position: relative;
+  z-index: 1;
+  padding: 10px 20px;
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-size: 15px;
+  font-weight: 600;
+  transition: color var(--medio) ease;
+}
+
+.pestana[aria-selected="true"] { color: var(--tinta); }
+
+.pestana-indicador {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: 0;
+  border-radius: 999px;
+  background: var(--superficie);
+  box-shadow: 0 2px 8px rgba(22, 24, 29, .1);
+  transition: transform var(--medio) var(--suave), width var(--medio) var(--suave);
+}
+
+.paneles { position: relative; margin-top: 26px; }
+
+.panel { display: none; }
+.panel.activo { display: block; animation: subir .5s var(--suave) both; }
+
+.lista-pasos {
+  counter-reset: paso;
+}
+
+.lista-pasos li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 64px;
+  padding: 12px 0;
+  border-top: 1px solid var(--filete);
+  counter-increment: paso;
+  font-size: 17px;
+}
+
+.lista-pasos li:first-child { border-top: 0; }
+
+.lista-pasos li::before {
+  content: counter(paso);
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--azul-suave);
+  color: var(--azul);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lista-pasos li span { flex: 1; }
+
+.lista-pasos .icono { flex: none; color: var(--tinta-2); }
+
+.instalar-nota {
+  margin-top: 18px;
+  color: var(--tinta-3);
+  font-size: 14px;
+}
+
+@media (max-width: 860px) {
+  .instalar-interior { grid-template-columns: 1fr; }
+}
+
+/* ---------- Cosas con (anuncio) ---------- */
+
+.con-anuncio {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(48px, 7vw, 88px) clamp(24px, 5vw, 72px);
+  border-radius: calc(var(--radio) + 8px);
+  /* Siempre oscuro, también en modo oscuro: es el único bloque «de noche» de la portada. */
+  background: #16181D;
+  color: #F6F3EC;
+  box-shadow: 0 40px 80px -40px rgba(22, 24, 29, .6);
+}
+
+.con-anuncio::before {
+  content: "";
+  position: absolute;
+  inset: auto -20% -60% auto;
+  width: 60%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(47, 111, 237, .55), transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.con-anuncio-interior {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: center;
+}
+
+.con-anuncio .antetitulo { color: rgba(246, 243, 236, .7); }
+
+.con-anuncio .titulo-seccion { max-width: none; }
+
+.con-anuncio .entradilla { color: rgba(246, 243, 236, .72); }
+
+.con-anuncio .boton-primario { background: #F6F3EC; color: #16181D; }
+.con-anuncio .boton-primario:hover { background: var(--azul); color: #fff; }
+
+.nombre-rotando {
+  display: inline-grid;
+  vertical-align: top;
+  color: var(--azul);
+  text-align: left;
+}
+
+.nombre-rotando > span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(.4em);
+  transition: opacity .45s var(--suave), transform .45s var(--suave);
+}
+
+.nombre-rotando > span.activo { opacity: 1; transform: none; }
+
+/* Dos móviles pequeños con la misma lista, sincronizados. */
+.con-demo {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+.con-demo .mini-telefono {
+  --fondo: #F2B705;
+  --tinta-t: #0A0A0A;
+  --superficie-t: rgba(255, 255, 255, .55);
+  --filete-t: rgba(10, 10, 10, .16);
+  width: 150px;
+  aspect-ratio: 150 / 250;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 12px 10px;
+}
+
+.con-demo .mini-telefono:nth-child(2) { transform: translateY(24px); }
+
+.con-demo .tel-titulo { font-size: 11px; margin-bottom: 4px; }
+
+.con-demo .tel-fila { padding: 4px; gap: 6px; font-size: 9.5px; border-radius: 18px; }
+.con-demo .tel-check { width: 22px; height: 22px; }
+.con-demo .tel-check svg { width: 11px; height: 11px; }
+
+.con-demo .tel-fila.nueva { animation: tel-aparecer .4s var(--suave) both; }
+
+.con-demo .tel-pildora { margin-top: auto; }
+
+.con-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--avatar, #2F6FED);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  flex: none;
+}
+
+@media (max-width: 860px) {
+  .con-anuncio-interior { grid-template-columns: 1fr; }
+  .con-demo { display: none; }
+}
