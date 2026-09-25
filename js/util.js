@@ -1,4 +1,7 @@
-/* cosas.es · utilidades compartidas de «Cosas con» */
+/* cosas.es · utilidades compartidas de «Cosas con» y «Cosas de» */
+
+/* La app. Sus accesos directos abren estas páginas con ?desde=app y la flecha vuelve aquí. */
+export const APP_URL = 'https://cosas-app.netlify.app/';
 
 export const PALETA = [
   { color: '#2F6FED', nombre: 'Azul' },

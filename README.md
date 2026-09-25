@@ -28,11 +28,19 @@ js/con.js             Lógica de Cosas con (vistas, rutas, lista)
 js/almacen-firebase.js  Guardado en la nube (Firebase) y cuentas
 js/almacen-local.js     Guardado en el navegador cuando Firebase no está configurado
 js/util.js            Utilidades (paleta, tono, identificadores…)
+integracion-app/      Fragmento para la app: dos accesos directos (Cosas con / Cosas de) en su inicio
 firebase-config.js    ← Aquí van los datos de tu proyecto de Firebase
 firestore.rules       Reglas de seguridad para pegar en Firebase
 netlify.toml          Redirecciones (/con/* y /de/* a su página) y cabeceras
 icons/                Favicon, icono de iOS e imagen para redes
 ```
+
+## Accesos directos desde la app
+
+La pantalla de inicio de la app puede llevar dos píldoras, **Cosas con** y **Cosas de**, que abren
+cada apartado; dentro, la flecha de arriba a la izquierda vuelve a la app. Como la app está en
+otro repositorio, el fragmento a pegar (HTML y CSS) y las instrucciones están en
+[`integracion-app/`](integracion-app/README.md).
 
 ## Publicar en Netlify
 

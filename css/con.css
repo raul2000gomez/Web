@@ -27,6 +27,33 @@ body {
   margin: 0 auto;
 }
 
+/* Flecha de vuelta (a la app o a la portada) con la marca al lado. */
+.volver-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.volver-app-boton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--superficie);
+  box-shadow: inset 0 0 0 1px var(--filete-2);
+  color: var(--tinta);
+  transition: background-color var(--rapido) ease, transform var(--rapido) var(--suave);
+}
+
+.volver-app-boton svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.volver-app:hover .volver-app-boton { background: var(--papel-2); }
+.volver-app:active .volver-app-boton { transform: scale(.92); }
+
 /* Estado de la sincronización: un punto y una palabra. */
 .estado {
   display: inline-flex;

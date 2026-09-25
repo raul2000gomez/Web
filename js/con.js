@@ -3,7 +3,7 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos, local } from './util.js';
+import { PALETA, APP_URL, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos, local } from './util.js';
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -12,7 +12,7 @@ const menosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').ma
 
 const el = {
   app: $('#app'),
-  estado: $('#estado'), estadoTexto: $('#estado-texto'),
+  estado: $('#estado'), estadoTexto: $('#estado-texto'), volverInicio: $('#volver-inicio'),
   formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'), crearTexto: $('#crear-texto'),
   tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'), cruce: $('#cruce'), tituloMias: $('#titulo-mis-listas'),
   bloqueMias: $('#bloque-mis-listas'), misListas: $('#mis-listas'),
@@ -65,9 +65,28 @@ const filas = new Map();       // id -> <li>
 let pararLista = null, pararCosas = null, pararMias = null;
 let colorPrevisualizado = null;
 
+/* ---------- La flecha de arriba a la izquierda ----------
+   Si se ha entrado desde la app (sus accesos abren ?desde=app, o el navegador dice que se
+   viene de ella), la flecha vuelve a la pantalla de inicio de la app. Se recuerda durante
+   la sesión, porque al abrir una lista la dirección cambia. Si no, vuelve a la portada. */
+
+function prepararVuelta() {
+  let desdeApp = new URLSearchParams(location.search).get('desde') === 'app'
+    || (document.referrer && document.referrer.indexOf(APP_URL) === 0);
+  try {
+    if (desdeApp) sessionStorage.setItem('cosascon:desde-app', '1');
+    else desdeApp = sessionStorage.getItem('cosascon:desde-app') === '1';
+  } catch (e) { /* Sin almacenamiento de sesión: vale con lo que diga la dirección. */ }
+  let volverA = '/';
+  if (desdeApp) volverA = APP_URL;
+  el.volverInicio.href = volverA;
+  el.volverInicio.setAttribute('aria-label', desdeApp ? 'Volver a la app Cosas' : 'Volver a la portada de Cosas');
+}
+
 /* ---------- Arranque ---------- */
 
 async function arrancar() {
+  prepararVuelta();
   const config = window.COSAS_FIREBASE;
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
