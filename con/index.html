@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Cosas con · listas compartidas</title>
+  <meta name="description" content="Crea una lista de cosas con otra persona. Tú añades desde tu móvil y ella lo ve al momento en el suyo. Sin instalar nada: basta un enlace.">
+  <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="noindex">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Cosas con · listas compartidas">
+  <meta property="og:description" content="Una lista de cosas con otra persona, en tiempo real. Sin instalar nada.">
+  <meta property="og:image" content="https://cosas.es/icons/og.png">
+  <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,400..800;1,400..800&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/con.css">
+</head>
+<body>
+
+  <header class="con-cabecera">
+    <div class="con-cabecera-interior">
+      <a class="marca" href="/" aria-label="Volver a la portada de Cosas">
+        <span class="marca-icono" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7 10 16.5 5 12"/></svg></span>
+        Cosas
+      </a>
+      <span class="estado" id="estado" data-estado="conectando" role="status" aria-live="polite">
+        <span class="estado-punto" aria-hidden="true"></span>
+        <span id="estado-texto">Conectando…</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="con-app" id="app">
+
+    <!-- Cargando -->
+    <section class="vista activa" data-vista="cargando" aria-label="Cargando">
+      <p class="cargando"><i></i> Un momento…</p>
+    </section>
+
+    <!-- Inicio: crear una lista -->
+    <section class="vista" data-vista="inicio" aria-labelledby="titulo-inicio">
+      <p class="antetitulo">Listas compartidas</p>
+      <form id="form-crear" novalidate>
+        <h1 class="con-titulo" id="titulo-inicio">
+          <span>Cosas con</span>
+          <span class="con-envoltorio">
+            <span class="con-medidor" id="medidor" aria-hidden="true">Raúl</span>
+            <input class="con-campo" id="campo-con" type="text" name="con" placeholder="Raúl" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" aria-label="¿Con quién es la lista?">
+          </span>
+        </h1>
+        <p class="entradilla">Escribe con quién y crea la lista. Te damos un enlace para pasárselo: al abrirlo, lo que tú añadas lo verá al momento, y tú lo suyo.</p>
+        <div class="con-acciones">
+          <button type="submit" class="boton boton-azul" id="crear" disabled>
+            Crear la lista
+            <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <span class="con-pista">Gratis. Sin instalar nada.</span>
+        </div>
+      </form>
+
+      <section class="bloque" id="bloque-mis-listas" hidden aria-labelledby="titulo-mis-listas">
+        <h2 class="bloque-titulo" id="titulo-mis-listas">Tus listas</h2>
+        <ul class="mis-listas" id="mis-listas"></ul>
+      </section>
+
+      <section class="bloque" aria-labelledby="titulo-cuenta">
+        <h2 class="bloque-titulo" id="titulo-cuenta">Tu cuenta</h2>
+        <div class="cuenta" id="cuenta">
+          <p id="cuenta-texto">Conectando…</p>
+          <button type="button" class="boton boton-google" id="entrar-google" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.2v3.1C3.2 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.3 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.2C.4 8.2 0 10.1 0 12s.4 3.8 1.2 5.4l4.1-3.1z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C18 1.2 15.2 0 12 0 7.3 0 3.2 2.7 1.2 6.6l4.1 3.1c.9-2.9 3.6-4.9 6.7-4.9z"/></svg>
+            Continuar con Google
+          </button>
+          <button type="button" class="boton boton-secundario" id="salir-cuenta" hidden>Cerrar sesión</button>
+        </div>
+        <div class="aviso-local" id="aviso-local" hidden>
+          <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <span><b>Modo local.</b> La sincronización aún no está activada en esta web: las listas se guardan solo en este navegador y todavía no se pueden compartir con otras personas.</span>
+        </div>
+      </section>
+    </section>
+
+    <!-- Nombre: quién eres, al entrar en una lista -->
+    <section class="vista" data-vista="nombre" aria-labelledby="titulo-nombre">
+      <div class="tarjeta-invitacion">
+        <p class="antetitulo" id="nombre-antetitulo">Te han invitado</p>
+        <h1 class="titulo-seccion" id="titulo-nombre">Cosas con Raúl</h1>
+        <p class="entradilla" id="nombre-ayuda">Di cómo te llamas para que se sepa quién añade cada cosa.</p>
+        <form class="formulario" id="form-nombre" novalidate>
+          <input class="campo-texto" id="campo-nombre" type="text" name="nombre" placeholder="Tu nombre" maxlength="40" autocomplete="given-name" autocapitalize="words" enterkeyhint="go" aria-label="Tu nombre">
+          <button type="submit" class="boton boton-azul" id="entrar" disabled>Entrar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Lista abierta -->
+    <section class="vista" data-vista="lista" aria-labelledby="titulo-lista">
+      <header class="lista-cabecera">
+        <a class="redondo" href="/con/" id="volver" aria-label="Volver a tus listas"><svg viewBox="0 0 24 24"><path d="M19 12H5M11.5 18.5 5 12l6.5-6.5"/></svg></a>
+        <h1 class="lista-titulo" id="titulo-lista" tabindex="-1">Cosas con</h1>
+        <button type="button" class="redondo" id="abrir-ajustes" aria-label="Ajustes de la lista"><svg viewBox="0 0 24 24"><path d="M12 5h.01M12 12h.01M12 19h.01" style="stroke-width:3"/></svg></button>
+      </header>
+      <div class="lista-sub">
+        <div class="miembros" id="miembros" aria-label="Quién está en la lista"></div>
+        <div class="lista-derecha">
+          <span class="estado-lista" id="estado-lista" data-estado="conectando" role="status" aria-live="polite"><span class="estado-punto" aria-hidden="true"></span><span>Conectando…</span></span>
+          <button type="button" class="boton-invitar" id="invitar">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 6.5 12 3l4 3.5M8.5 10H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-1.5"/></svg>
+            Invitar
+          </button>
+        </div>
+      </div>
+      <ul class="lista" id="cosas" role="list"></ul>
+      <p class="vacio" id="vacio">Todavía no hay cosas. Escribe la primera.</p>
+      <form class="barra" id="form-cosa" autocomplete="off" novalidate>
+        <div class="pildora">
+          <input class="campo" id="campo-cosa" type="text" name="cosa" placeholder="Escribe una cosa…" aria-label="Escribe una cosa" maxlength="500" autocapitalize="sentences" enterkeyhint="done">
+          <button type="submit" class="enviar" id="enviar" aria-label="Guardar" disabled><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+        </div>
+      </form>
+    </section>
+
+    <!-- No existe -->
+    <section class="vista" data-vista="no-existe" aria-labelledby="titulo-no-existe">
+      <div class="vacio-grande">
+        <h1 id="titulo-no-existe">Esta lista no existe</h1>
+        <p>Puede que el enlace esté incompleto o que la lista se haya borrado. Comprueba el enlace o crea una lista nueva.</p>
+        <a class="boton boton-azul" href="/con/">Crear una lista</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Ajustes de la lista -->
+  <div class="hoja" id="hoja" aria-hidden="true">
+    <div class="hoja-velo" id="hoja-velo"></div>
+    <section class="hoja-panel" role="dialog" aria-modal="true" aria-labelledby="titulo-hoja">
+      <header class="hoja-cabecera">
+        <h2 class="hoja-titulo" id="titulo-hoja" tabindex="-1">Ajustes de la lista</h2>
+        <button type="button" class="redondo" id="cerrar-hoja" aria-label="Cerrar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <form id="form-ajustes" novalidate>
+        <label class="etiqueta" for="ajuste-nombre">Cosas con…</label>
+        <input class="campo-texto" id="ajuste-nombre" type="text" maxlength="40" autocomplete="off" autocapitalize="words" placeholder="Raúl">
+        <p class="etiqueta" id="etiqueta-color">Color</p>
+        <div class="hoja-muestras" id="ajuste-colores" role="radiogroup" aria-labelledby="etiqueta-color"></div>
+        <label class="etiqueta" for="ajuste-mi-nombre">Tu nombre</label>
+        <input class="campo-texto" id="ajuste-mi-nombre" type="text" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Tu nombre">
+        <div class="hoja-acciones">
+          <button type="submit" class="boton-ancho principal" id="guardar-ajustes">Guardar</button>
+          <button type="button" class="boton-ancho" id="copiar-enlace">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a3.5 3.5 0 0 0 5 0l3-3a3.5 3.5 0 0 0-5-5l-1 1"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-3 3a3.5 3.5 0 0 0 5 5l1-1"/></svg>
+            Copiar el enlace
+          </button>
+          <button type="button" class="boton-ancho" id="entrar-google-hoja" hidden>Continuar con Google</button>
+          <button type="button" class="boton-ancho peligro" id="salir-lista">Salir de la lista</button>
+          <button type="button" class="boton-ancho peligro" id="borrar-lista" hidden>Borrar la lista para todos</button>
+        </div>
+        <p class="hoja-nota" id="hoja-nota"></p>
+      </form>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <noscript><p style="padding:24px;text-align:center">Cosas con necesita JavaScript para funcionar.</p></noscript>
+
+  <script src="/firebase-config.js"></script>
+  <script type="module" src="/js/con.js"></script>
+</body>
+</html>
