@@ -125,6 +125,6 @@ export const local = {
   }
 };
 
-export function enlaceDe(id, tipo) {
-  return `${location.origin}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
+export function enlaceDe(id, tipo, base = '') {
+  return `${location.origin}${base}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
 }
