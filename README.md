@@ -41,6 +41,22 @@ y **Cosas de**, que abren cada apartado con `?desde=app`; con eso, la flecha de 
 de estas páginas vuelve a la app. Los enlaces de la app apuntan a `cosas.info`: publica esta web en ese
 dominio (o cambia el dominio en `app/index.html` de la app) antes de publicar la app con los accesos.
 
+## Dónde está publicada
+
+Cada cambio en `main` se publica solo en **GitHub Pages** (flujo `.github/workflows/pages.yml`, que
+copia `main` a la rama `gh-pages`): https://raul2000gomez.github.io/Web/
+
+La web funciona igual en la raíz de un dominio (cosas.info) que en esa subcarpeta: todas las
+rutas son relativas y `404.html` abre las listas (`/con/ID`, `/de/ID`) donde no hay
+redirecciones. Para usar **cosas.info** con GitHub Pages: en el repositorio, **Settings → Pages →
+Custom domain** escribe `cosas.info` (GitHub crea el archivo `CNAME` en `gh-pages`), y en el
+registrador del dominio apunta `cosas.info` a GitHub Pages (registros A a 185.199.108.153,
+185.199.109.153, 185.199.110.153 y 185.199.111.153, y `www` como CNAME a
+`raul2000gomez.github.io`). Como `gh-pages` se regenera desde `main` en cada cambio, añade también
+un archivo `CNAME` con `cosas.info` en `main` para que no se pierda.
+
+Si prefieres Netlify, sigue el apartado siguiente: la web es la misma.
+
 ## Publicar en Netlify
 
 1. Entra en [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import an existing project** y elige este repositorio.
@@ -111,8 +127,8 @@ listas son las reglas de `firestore.rules`.
 
 ## Probar en el ordenador
 
-Cualquier servidor estático vale. Para que `/con/ID` y `/de/ID` funcionen en local hace falta
-servir `con/index.html` y `de/index.html` en esas rutas, como hace Netlify. Con Node:
+Cualquier servidor estático vale. Los enlaces `/con/ID` y `/de/ID` funcionan gracias a
+`404.html` (o a las redirecciones de Netlify si el servidor las imita). Con Node:
 
 ```sh
 npx serve --single .        # o: npx http-server .
