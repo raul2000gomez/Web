@@ -1,9 +1,9 @@
-/* cosas.es · almacén en la nube para «Cosas con» (Firebase: Auth + Firestore)
+/* cosas.info · almacén en la nube para «Cosas con» (Firebase: Auth + Firestore)
    Cada persona entra de forma anónima sin darse cuenta; si quiere tener sus listas en
    todos sus dispositivos, enlaza la cuenta con Google. Las listas se sincronizan en
    tiempo real y funcionan sin conexión gracias a la caché de Firestore. */
 
-import { idNuevo, local, ordenar, esColor } from './util.js';
+import { idNuevo, local, ordenar, esColor, estaLlena } from './util.js';
 
 const VERSION = '12.4.0';
 const CDN = `https://www.gstatic.com/firebasejs/${VERSION}/`;
@@ -78,10 +78,19 @@ export async function crearAlmacenFirebase(config) {
   async function unirse(id, perfil) {
     const u = uid();
     if (!u) throw new Error('sin-usuario');
-    await fs.updateDoc(ref(id), {
-      uids: fs.arrayUnion(u),
-      [`miembros.${u}`]: { nombre: perfil.nombre, color: perfil.color, desde: fs.serverTimestamp() }
-    });
+    /* «Cosas con» es solo para dos: se comprueba antes y, por si acaso, las reglas lo impiden también. */
+    let actual = null;
+    try { actual = datosLista(await fs.getDocFromServer(ref(id))); } catch (e) { /* Sin red: lo decidirán las reglas. */ }
+    if (actual && estaLlena(actual, u)) throw new Error('lista-llena');
+    try {
+      await fs.updateDoc(ref(id), {
+        uids: fs.arrayUnion(u),
+        [`miembros.${u}`]: { nombre: perfil.nombre, color: perfil.color, desde: fs.serverTimestamp() }
+      });
+    } catch (e) {
+      if (e && e.code === 'permission-denied') throw new Error('lista-llena');
+      throw e;
+    }
     recordarId(id);
   }
 
@@ -133,12 +142,12 @@ export async function crearAlmacenFirebase(config) {
         .catch(e => console.warn('No se pudo guardar el perfil', e));
     },
 
-    async crearLista({ nombre, color, perfil }) {
+    async crearLista({ nombre, tipo, color, perfil }) {
       const u = uid();
       if (!u) throw new Error('sin-usuario');
       const id = idNuevo();
       await fs.setDoc(ref(id), {
-        nombre, color,
+        nombre, tipo: tipo === 'de' ? 'de' : 'con', color,
         creada: fs.serverTimestamp(),
         creadaPor: u,
         uids: [u],
@@ -208,6 +217,7 @@ export async function crearAlmacenFirebase(config) {
     async actualizarLista(id, cambios) {
       const c = {};
       if (typeof cambios.nombre === 'string') c.nombre = cambios.nombre;
+      if (cambios.tipo === 'con' || cambios.tipo === 'de') c.tipo = cambios.tipo;
       if (esColor(cambios.color)) c.color = cambios.color;
       if (Object.keys(c).length) await fs.updateDoc(ref(id), c);
     },

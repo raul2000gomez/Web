@@ -1,4 +1,4 @@
-/* cosas.es · Cosas con
+/* cosas.info · Cosas con
    La página de inicio va sobre el papel de la web. Una lista abierta se pinta entera de
    su color, como la página de un grupo en la app, y usa la misma «tinta» según luminancia. */
 
@@ -13,7 +13,7 @@ body {
 
 .con-cabecera {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 20;
   padding: 14px var(--margen);
 }
@@ -26,6 +26,33 @@ body {
   max-width: 720px;
   margin: 0 auto;
 }
+
+/* Flecha de vuelta (a la app o a la portada) con la marca al lado. */
+.volver-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.volver-app-boton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--superficie);
+  box-shadow: inset 0 0 0 1px var(--filete-2);
+  color: var(--tinta);
+  transition: background-color var(--rapido) ease, transform var(--rapido) var(--suave);
+}
+
+.volver-app-boton svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.volver-app:hover .volver-app-boton { background: var(--papel-2); }
+.volver-app:active .volver-app-boton { transform: scale(.92); }
 
 /* Estado de la sincronización: un punto y una palabra. */
 .estado {
@@ -66,7 +93,13 @@ body {
 }
 
 .vista { display: none; }
-.vista.activa { display: block; animation: subir .45s var(--suave) backwards; }
+.vista.activa { display: block; animation: vista-aparecer .4s ease-out backwards; }
+
+/* Solo opacidad: una transform en la vista convertiría a la barra fija en hija suya. */
+@keyframes vista-aparecer {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 @keyframes subir {
   from { opacity: 0; transform: translateY(14px); }
@@ -74,6 +107,36 @@ body {
 }
 
 /* ---------- Inicio: «Cosas con ___» ---------- */
+
+/* Conmutador «Cosas con» / «Cosas de». */
+.conmutador {
+  display: flex;
+  width: fit-content;
+  margin: 0 0 22px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tinta) 6%, transparent);
+  box-shadow: inset 0 0 0 1px var(--filete);
+}
+
+.conmutador-opcion {
+  padding: 9px 18px;
+  border-radius: 999px;
+  color: var(--tinta-2);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background-color var(--rapido) ease, color var(--rapido) ease, box-shadow var(--rapido) ease;
+}
+
+.conmutador-opcion[aria-checked="true"] {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: 0 2px 8px rgba(22, 24, 29, .12);
+}
+
+.hoja .conmutador { margin-bottom: 0; background: var(--superficie-l); box-shadow: inset 0 0 0 1px var(--filete-l); }
+.hoja .conmutador-opcion { color: var(--tinta-l-suave); }
+.hoja .conmutador-opcion[aria-checked="true"] { background: var(--tinta-l); color: var(--fondo); box-shadow: none; }
 
 .con-titulo {
   display: flex;
@@ -109,17 +172,17 @@ body {
   margin: 0;
   padding: 0;
   border: 0;
-  border-bottom: 3px solid var(--azul);
+  border-bottom: 3px solid var(--azul-texto);
   outline: none;
   background: transparent;
-  color: var(--azul);
+  color: var(--azul-texto);
   font: inherit;
   letter-spacing: inherit;
-  caret-color: var(--azul);
+  caret-color: var(--azul-texto);
   transition: border-color var(--rapido) ease;
 }
 
-.con-campo::placeholder { color: color-mix(in srgb, var(--azul) 38%, transparent); opacity: 1; }
+.con-campo::placeholder { color: color-mix(in srgb, var(--azul-texto) 55%, transparent); opacity: 1; }
 
 .con-campo:focus { border-bottom-style: solid; }
 
@@ -135,6 +198,26 @@ body {
   color: var(--tinta-3);
   font-size: 14px;
 }
+
+/* Enlace al otro apartado («Cosas con» ↔ «Cosas de»). */
+.cruce {
+  max-width: 52ch;
+  margin-top: 28px;
+  color: var(--tinta-3);
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+
+.cruce a {
+  color: var(--tinta);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--filete-2);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--rapido) ease;
+}
+
+.cruce a:hover { text-decoration-color: var(--tinta); }
 
 .bloque {
   margin-top: clamp(48px, 8vw, 80px);
@@ -312,7 +395,7 @@ body {
 
 .lista-cabecera {
   position: sticky;
-  top: 0;
+  top: env(safe-area-inset-top, 0px);
   z-index: 10;
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) 48px;
@@ -428,6 +511,25 @@ body {
 .estado-lista[data-estado="sincronizado"] .estado-punto { background: var(--verde); }
 .estado-lista[data-estado="guardando"] .estado-punto { background: #F2B705; animation: parpadeo 1s ease-in-out infinite; }
 .estado-lista[data-estado="sin-conexion"] .estado-punto { background: #EF5B5B; }
+
+/* En una lista «con» completa: ya sois dos, nadie más entra. */
+.solo-dos {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px 0 11px;
+  border-radius: 18px;
+  background: var(--superficie-l);
+  box-shadow: inset 0 0 0 1px var(--filete-l);
+  color: var(--tinta-l);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.solo-dos svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.conmutador-opcion:disabled { opacity: .4; cursor: default; }
 
 .boton-invitar {
   display: inline-flex;
@@ -773,6 +875,15 @@ body {
 }
 
 .vacio-grande p { margin: 14px auto 28px; max-width: 44ch; color: var(--tinta-2); }
+
+.vacio-grande .antetitulo { justify-content: center; }
+
+.acciones-centradas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
 
 /* ---------- Cargando ---------- */
 

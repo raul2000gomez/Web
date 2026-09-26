@@ -1,4 +1,7 @@
-/* cosas.es · utilidades compartidas de «Cosas con» */
+/* cosas.info · utilidades compartidas de «Cosas con» y «Cosas de» */
+
+/* La app. Sus accesos directos abren estas páginas con ?desde=app y la flecha vuelve aquí. */
+export const APP_URL = 'https://cosas-app.netlify.app/';
 
 export const PALETA = [
   { color: '#2F6FED', nombre: 'Azul' },
@@ -67,10 +70,35 @@ export function limpiar(texto, max) {
   return String(texto || '').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
-/* Las listas van como «Cosas con Raúl»: aquí se guarda solo «Raúl». */
-export function tituloDe(lista) {
-  const n = limpiar(lista && lista.nombre, 40);
-  return n ? `Cosas con ${n}` : 'Cosas con…';
+/* Dos tipos de lista: «con» (con una persona: «Cosas con Raúl») y «de» (un grupo alrededor
+   de un tema: «Cosas de trabajo»). Se guarda solo lo que va después. */
+export const TIPOS = ['con', 'de'];
+
+export function tipoDe(lista) {
+  return lista && lista.tipo === 'de' ? 'de' : 'con';
+}
+
+/* «Cosas con» es solo para dos personas: llena cuando ya están las dos. */
+export function estaLlena(lista, uid) {
+  if (!lista || tipoDe(lista) !== 'con') return false;
+  const uids = Array.isArray(lista.uids) ? lista.uids : [];
+  return uids.length >= 2 && !(uid && uids.includes(uid));
+}
+
+export function esDeDos(lista) {
+  return !!lista && tipoDe(lista) === 'con' && Array.isArray(lista.uids) && lista.uids.length >= 2;
+}
+
+/* El título. En una lista «con» de dos personas, cada una ve el nombre de la otra:
+   Ana ve «Cosas con Raúl» y Raúl, «Cosas con Ana». */
+export function tituloDe(lista, uid) {
+  const tipo = tipoDe(lista);
+  let n = limpiar(lista && lista.nombre, 40);
+  if (tipo === 'con' && uid && lista && Array.isArray(lista.uids) && lista.uids.length === 2 && lista.uids.includes(uid)) {
+    const otro = lista.miembros && lista.miembros[lista.uids.find(u => u !== uid)];
+    if (otro && otro.nombre) n = limpiar(otro.nombre, 40);
+  }
+  return n ? `Cosas ${tipo} ${n}` : `Cosas ${tipo}…`;
 }
 
 /* Ordena las cosas: pendientes primero (las nuevas arriba); las hechas, al final. */
@@ -97,6 +125,6 @@ export const local = {
   }
 };
 
-export function enlaceDe(id) {
-  return `${location.origin}/con/${id}`;
+export function enlaceDe(id, tipo) {
+  return `${location.origin}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
 }

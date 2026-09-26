@@ -1,9 +1,9 @@
-/* cosas.es · almacén local para «Cosas con»
+/* cosas.info · almacén local para «Cosas con»
    Se usa cuando Firebase no está configurado. Guarda todo en el navegador y avisa a las
    demás pestañas con el evento «storage», así una lista abierta en dos pestañas se mantiene
    al día. No puede compartir con otras personas: para eso hace falta la nube. */
 
-import { idNuevo, local, ordenar, esColor } from './util.js';
+import { idNuevo, local, ordenar, esColor, estaLlena } from './util.js';
 
 const CLAVE = 'cosascon:local:v1';
 const CLAVE_UID = 'cosascon:uid';
@@ -78,10 +78,10 @@ export function crearAlmacenLocal() {
     async leerPerfil() { return local.leer('cosascon:perfil'); },
     async guardarPerfil(perfil) { local.guardar('cosascon:perfil', perfil); },
 
-    async crearLista({ nombre, color, perfil }) {
+    async crearLista({ nombre, tipo, color, perfil }) {
       const id = idNuevo();
       datos.listas[id] = {
-        id, nombre, color, creada: ahora(), creadaPor: uid,
+        id, nombre, tipo: tipo === 'de' ? 'de' : 'con', color, creada: ahora(), creadaPor: uid,
         uids: [uid],
         miembros: { [uid]: { nombre: perfil.nombre, color: perfil.color, desde: ahora() } },
         cosas: {}
@@ -95,6 +95,7 @@ export function crearAlmacenLocal() {
     async unirse(id, perfil) {
       const l = datos.listas[id];
       if (!l) throw new Error('no-existe');
+      if (estaLlena(l, uid)) throw new Error('lista-llena');
       if (!l.uids.includes(uid)) l.uids.push(uid);
       l.miembros[uid] = { ...(l.miembros[uid] || {}), nombre: perfil.nombre, color: perfil.color, desde: (l.miembros[uid] || {}).desde || ahora() };
       guardar();
@@ -156,6 +157,8 @@ export function crearAlmacenLocal() {
       const l = datos.listas[id];
       if (!l) return;
       if (typeof cambios.nombre === 'string') l.nombre = cambios.nombre;
+      if (cambios.tipo === 'con' && l.uids.length > 2) throw new Error('demasiados');
+      if (cambios.tipo === 'con' || cambios.tipo === 'de') l.tipo = cambios.tipo;
       if (esColor(cambios.color)) l.color = cambios.color;
       guardar();
     },

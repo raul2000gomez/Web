@@ -1,16 +1,19 @@
 rules_version = '2';
 
-// cosas.es · reglas de Firestore para «Cosas con»
+// cosas.info · reglas de Firestore para «Cosas con»
 // Pégalas en Firebase → Firestore Database → Reglas y publica.
 //
 // Modelo:
-//   listas/{id}              { nombre, color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
+//   listas/{id}              { nombre, tipo: 'con' | 'de', color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
 //   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por }
 //   usuarios/{uid}           { nombre, color, actualizado }
 //
 // Cualquiera que tenga el enlace (y esté identificado, aunque sea de forma anónima) puede
 // leer una lista y unirse a ella añadiéndose a sí mismo. Solo los miembros pueden ver y
 // tocar sus cosas. Solo quien la creó puede borrarla.
+//
+// «Cosas con» es para dos personas exactamente: una lista de tipo «con» nunca puede tener
+// más de dos miembros (ni al unirse alguien, ni al cambiar el tipo de una lista mayor).
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -29,6 +32,16 @@ service cloud.firestore {
 
     function colorValido(v) {
       return v is string && v.matches('^#[0-9A-Fa-f]{6}$');
+    }
+
+    // «con» (con una persona) o «de» (un grupo alrededor de un tema).
+    function tipoValido(v) {
+      return v is string && v in ['con', 'de'];
+    }
+
+    // «Cosas con» es solo para dos; «Cosas de» no tiene límite.
+    function dentroDelLimite(datos) {
+      return datos.tipo != 'con' || datos.uids.size() <= 2;
     }
 
     // Unirse: la única diferencia con la lista anterior es que uno mismo aparece en «uids» y en «miembros».
@@ -50,10 +63,14 @@ service cloud.firestore {
         && request.resource.data.creadaPor == request.auth.uid
         && request.resource.data.uids == [request.auth.uid]
         && textoValido(request.resource.data.nombre, 40)
+        && tipoValido(request.resource.data.tipo)
+        && dentroDelLimite(request.resource.data)
         && colorValido(request.resource.data.color);
 
       allow update: if identificado()
         && textoValido(request.resource.data.nombre, 40)
+        && tipoValido(request.resource.data.tipo)
+        && dentroDelLimite(request.resource.data)
         && colorValido(request.resource.data.color)
         && request.resource.data.creadaPor == resource.data.creadaPor
         && (esMiembro(resource.data) || seUneASiMismo());

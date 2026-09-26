@@ -1,4 +1,4 @@
-/* cosas.es · portada */
+/* cosas.info · portada */
 
 main { display: block; }
 
@@ -10,6 +10,9 @@ main { display: block; }
   max-width: var(--ancho);
   margin: 0 auto;
 }
+
+/* Dos bloques seguidos (Cosas con y Cosas de) van juntos, sin todo el aire de una sección. */
+.seccion-junta { padding-top: 0; padding-bottom: 20px; }
 
 /* ---------- Teléfono (maqueta de la app) ---------- */
 
@@ -54,19 +57,38 @@ main { display: block; }
 
 .pantalla {
   position: relative;
-  display: flex;
-  flex-direction: column;
   height: 100%;
-  padding: 58px 14px 14px;
   border-radius: 40px;
   overflow: hidden;
   background: var(--fondo);
   transition: background-color .35s ease;
 }
 
+/* Las dos pantallas de la demostración van superpuestas; landing.js elige cuál se ve. */
+.tel-vista {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 100px 14px 14px; /* Los botones van bajo la isla, como bajo la barra de estado real. */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility 0s linear .2s;
+}
+
+.telefono[data-pantalla="inicio"] .tel-vista-inicio,
+.telefono[data-pantalla="lista"] .tel-vista-lista {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .2s ease, visibility 0s;
+  animation: tel-aparecer .22s ease-out both;
+}
+
+.tel-vista-inicio { justify-content: flex-end; }
+
 .tel-esquinas {
   position: absolute;
-  top: 14px;
+  top: 54px;
   left: 14px;
   right: 14px;
   display: flex;
@@ -81,17 +103,69 @@ main { display: block; }
   border-radius: 50%;
   background: var(--superficie-t);
   box-shadow: inset 0 0 0 1px var(--filete-t);
+  transition: transform .12s ease;
 }
 
+.tel-redondo.pulsado { transform: scale(.92); }
+
 .tel-redondo svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Los dos accesos directos bajo los botones de las esquinas (píldoras como las de la app). */
+.tel-accesos {
+  position: absolute;
+  top: 102px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.tel-acceso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 13px 0 10px;
+  border-radius: 17px;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.tel-acceso svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* El aviso «Guardado» se coloca bajo los accesos para no taparlos. */
+.telefono .tel-toast-arriba { top: 146px; }
+
+/* Cabecera de la vista de lista: «Volver», el título y un hueco, como en la app. */
+.tel-cabecera {
+  position: absolute;
+  top: 54px;
+  left: 14px;
+  right: 14px;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 38px;
+  align-items: center;
+  gap: 6px;
+}
+
+.tel-titulo-vista {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  text-align: center;
+}
 
 .tel-lista {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 6px;
   min-height: 0;
+  padding-top: 8px;
 }
 
 .tel-fila {
@@ -111,8 +185,19 @@ main { display: block; }
 
 .tel-fila.saliendo { opacity: 0; transform: scale(.96); transition: opacity .2s ease, transform .2s ease; }
 
+/* Al borrar, la fila se pliega y las demás suben suavemente (como en la app). */
+.tel-fila.plegada {
+  overflow: hidden;
+  height: 0 !important;
+  margin-top: -6px;
+  padding-top: 0;
+  padding-bottom: 0;
+  opacity: 0;
+  transition: height .22s ease, margin .22s ease, padding .22s ease, opacity .16s ease;
+}
+
 @keyframes tel-aparecer {
-  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -164,7 +249,16 @@ main { display: block; }
   transition: box-shadow .15s ease;
 }
 
-.tel-pildora.escribiendo { box-shadow: inset 0 0 0 2px var(--tinta-t); }
+.tel-pildora.escribiendo,
+.tel-pildora.escuchando { box-shadow: inset 0 0 0 2px var(--tinta-t); }
+
+/* «Crear grupo de cosas»: la píldora entera es un botón. */
+.tel-pildora-boton {
+  justify-content: center;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
 
 .tel-campo {
   flex: 1;
@@ -202,7 +296,7 @@ main { display: block; }
   display: grid;
   place-items: center;
   border-radius: 50%;
-  transition: opacity .15s ease, transform .15s ease;
+  transition: opacity .15s ease, transform .15s ease, color .15s ease;
 }
 
 .tel-micro svg, .tel-enviar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
@@ -212,6 +306,89 @@ main { display: block; }
 
 .tel-pildora.con-texto .tel-micro { opacity: 0; transform: scale(.6); }
 .tel-pildora.con-texto .tel-enviar { opacity: 1; transform: none; }
+
+/* Dictando: tras el micrófono aparece un disco relleno que late, como en la app. */
+.tel-micro { position: relative; }
+
+.tel-micro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--tinta-t);
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.tel-micro svg { position: relative; }
+
+.tel-micro.escuchando { color: var(--fondo); }
+.tel-micro.escuchando::before { opacity: 1; animation: latir 1.6s ease-in-out infinite; }
+
+/* Avisos de la app: «Guardado» arriba, entre los dos botones; «Eliminada · Deshacer» sobre la barra. */
+.tel-toast {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px 0 10px;
+  border-radius: 17px;
+  background: var(--tinta-t);
+  color: var(--contraste-t, #0A0A0A);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .18);
+  opacity: 0;
+  transform: translate(-50%, var(--reposo, 8px));
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
+}
+
+.tel-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+.tel-toast svg { width: 15px; height: 15px; fill: none; stroke: var(--verde); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+.tel-toast-arriba { --reposo: -8px; top: 56px; } /* Entre los dos botones, como en la app. */
+.tel-toast-abajo { bottom: 72px; }
+
+.tel-toast b {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin: 0 -12px 0 4px;
+  padding: 0 12px 0 10px;
+  border-left: 1px solid rgba(128, 128, 128, .35);
+  font-weight: 700;
+}
+
+.telefono[data-tono="claro"] { --contraste-t: #FFFFFF; }
+
+/* El «dedo»: un círculo que aparece donde se toca. */
+.tel-dedo {
+  position: absolute;
+  z-index: 5;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .35);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .55);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.telefono[data-tono="claro"] .tel-dedo { background: rgba(10, 10, 10, .22); box-shadow: 0 0 0 2px rgba(10, 10, 10, .4); }
+
+.tel-dedo.tocando { animation: tel-toque .5s ease-out both; }
+
+@keyframes tel-toque {
+  0% { opacity: 0; transform: scale(.5); }
+  35% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
 
 /* ---------- Portada (hero) ---------- */
 
@@ -270,7 +447,7 @@ main { display: block; }
 
 .hero-titulo .acento {
   display: inline-block;
-  color: var(--azul);
+  color: var(--azul-texto);
   font-size: 1.08em;
   letter-spacing: -.01em;
 }
@@ -393,7 +570,7 @@ main { display: block; }
   height: 36px;
   border-radius: 50%;
   background: var(--azul-suave);
-  color: var(--azul);
+  color: var(--azul-texto);
   font-size: 14px;
   font-weight: 700;
 }
@@ -433,6 +610,7 @@ main { display: block; }
 }
 
 .paso-pantalla .tel-fila { animation: none; }
+.paso-pantalla .tel-fila + .tel-fila { margin-top: 6px; }
 .paso-pantalla p { margin: 0; color: inherit; font-size: inherit; }
 .paso-pantalla .tel-pildora { height: 44px; }
 .paso-pantalla .tel-campo:empty::before { content: none; }
@@ -448,10 +626,7 @@ main { display: block; }
   letter-spacing: -.01em;
 }
 
-/* En el paso 1, el micrófono late como en la app. */
-.paso-pantalla .tel-micro.escuchando { background: var(--tinta-t); color: var(--fondo); animation: latir 1.6s ease-in-out infinite; }
-
-@keyframes latir { 50% { transform: scale(.9); } }
+@keyframes latir { 50% { transform: scale(.88); } }
 
 /* En el paso 2, el check se marca al pasar el ratón. */
 .paso:hover .tel-fila.marcable { --hecha: 1; }
@@ -498,7 +673,7 @@ main { display: block; }
   height: 44px;
   border-radius: 14px;
   background: var(--azul-suave);
-  color: var(--azul);
+  color: var(--azul-texto);
 }
 
 .tarjeta-icono .icono { width: 22px; height: 22px; }
@@ -746,7 +921,7 @@ main { display: block; }
   height: 32px;
   border-radius: 50%;
   background: var(--azul-suave);
-  color: var(--azul);
+  color: var(--azul-texto);
   font-size: 14px;
   font-weight: 700;
 }
@@ -807,10 +982,25 @@ main { display: block; }
 .con-anuncio .boton-primario { background: #F6F3EC; color: #16181D; }
 .con-anuncio .boton-primario:hover { background: var(--azul); color: #fff; }
 
+/* «Cosas de»: el mismo bloque en claro, con el turquesa de la app como acento. */
+.anuncio-de {
+  background: var(--superficie);
+  color: var(--tinta);
+  box-shadow: var(--sombra-suave), inset 0 0 0 1px var(--filete);
+}
+
+.anuncio-de::before { background: radial-gradient(closest-side, rgba(27, 163, 156, .32), transparent 70%); }
+.anuncio-de .antetitulo { color: var(--tinta-2); }
+.anuncio-de .antetitulo::before { background: #1BA39C; }
+.anuncio-de .entradilla { color: var(--tinta-2); }
+.anuncio-de .nombre-rotando { color: var(--turquesa-texto); }
+.anuncio-de .boton-primario { background: var(--tinta); color: var(--papel); }
+.anuncio-de .boton-primario:hover { background: #1BA39C; color: #0A0A0A; }
+
 .nombre-rotando {
   display: inline-grid;
   vertical-align: top;
-  color: var(--azul);
+  color: #7FA8FF; /* Sobre el bloque oscuro, siempre el azul claro. */
   text-align: left;
 }
 
@@ -844,6 +1034,13 @@ main { display: block; }
 }
 
 .con-demo .mini-telefono:nth-child(2) { transform: translateY(24px); }
+
+/* Un solo móvil, más grande, con la fila de quién está en el grupo. */
+.de-demo .mini-telefono { --fondo: #1BA39C; width: 186px; aspect-ratio: 186 / 300; }
+.de-demo .mini-telefono:nth-child(2) { transform: none; }
+
+.tel-miembros { display: flex; gap: 5px; margin: 0 0 8px; }
+.tel-miembros .con-avatar { width: 20px; height: 20px; font-size: 9.5px; box-shadow: 0 0 0 1.5px rgba(10, 10, 10, .12); }
 
 .con-demo .tel-titulo { font-size: 11px; margin-bottom: 4px; }
 

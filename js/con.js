@@ -1,9 +1,9 @@
-/* cosas.es · Cosas con
+/* cosas.info · Cosas con
    La página de las listas compartidas. Elige el almacén (la nube si hay configuración de
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, enlaceDe, local } from './util.js';
+import { PALETA, APP_URL, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos, local } from './util.js';
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -12,16 +12,18 @@ const menosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').ma
 
 const el = {
   app: $('#app'),
-  estado: $('#estado'), estadoTexto: $('#estado-texto'),
-  formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'),
+  estado: $('#estado'), estadoTexto: $('#estado-texto'), volverInicio: $('#volver-inicio'),
+  formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'), crearTexto: $('#crear-texto'),
+  tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'), cruce: $('#cruce'), tituloMias: $('#titulo-mis-listas'),
   bloqueMias: $('#bloque-mis-listas'), misListas: $('#mis-listas'),
   cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
-  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
+  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), soloDos: $('#solo-dos'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
   hoja: $('#hoja'), hojaVelo: $('#hoja-velo'), cerrarHoja: $('#cerrar-hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
+  ajusteTipo: $('#ajuste-tipo'), ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
   toast: $('#toast'),
   temaMeta: document.querySelectorAll('meta[name="theme-color"]')
@@ -33,7 +35,29 @@ const ICONO_BORRAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h
 let almacen = null;
 let usuario = null;
 let perfil = null;
-let pendiente = null;          // { tipo: 'crear', nombre } | { tipo: 'unirse', id, lista }
+let pendiente = null;          // { accion: 'crear', nombre, tipo } | { accion: 'unirse', id, lista }
+
+/* Cada apartado es una página: /con/ (con una persona) y /de/ (un grupo alrededor de un tema).
+   La página declara su tipo en data-tipo; la lógica es la misma. */
+const tipoPagina = el.app.dataset.tipo === 'de' ? 'de' : 'con';
+const RUTA_INICIO = `/${tipoPagina}/`;
+const otroTipo = tipoPagina === 'de' ? 'con' : 'de';
+
+/* Textos que cambian según el tipo. */
+const TEXTOS = {
+  con: {
+    titulo: 'Cosas con', ejemplo: 'Raúl', boton: 'Crear la lista',
+    ayuda: 'Para dos personas: tú y otra. Escribe con quién, crea la lista y pásale el enlace. Lo que tú añadas lo verá al momento, y tú lo suyo. Nadie más puede entrar.',
+    creada: 'Lista creada. Pásale el enlace a la otra persona.', etiqueta: '¿Con quién es la lista?',
+    mias: 'Tus listas', otras: n => n === 1 ? 'Tienes 1 lista en Cosas con' : `Tienes ${n} listas en Cosas con`, ir: 'Ir a Cosas con'
+  },
+  de: {
+    titulo: 'Cosas de', ejemplo: 'trabajo', boton: 'Crear el grupo',
+    ayuda: 'Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje», «Cosas de la boda». Comparte el enlace con quien quieras y todos ven y añaden las cosas de ese tema.',
+    creada: 'Grupo creado. Comparte el enlace con la gente.', etiqueta: '¿De qué va el grupo?',
+    mias: 'Tus grupos', otras: n => n === 1 ? 'Tienes 1 grupo en Cosas de' : `Tienes ${n} grupos en Cosas de`, ir: 'Ir a Cosas de'
+  }
+};
 let listaId = null;
 let lista = null;
 let cosasActuales = new Map(); // id -> datos
@@ -41,9 +65,28 @@ const filas = new Map();       // id -> <li>
 let pararLista = null, pararCosas = null, pararMias = null;
 let colorPrevisualizado = null;
 
+/* ---------- La flecha de arriba a la izquierda ----------
+   Si se ha entrado desde la app (sus accesos abren ?desde=app, o el navegador dice que se
+   viene de ella), la flecha vuelve a la pantalla de inicio de la app. Se recuerda durante
+   la sesión, porque al abrir una lista la dirección cambia. Si no, vuelve a la portada. */
+
+function prepararVuelta() {
+  let desdeApp = new URLSearchParams(location.search).get('desde') === 'app'
+    || (document.referrer && document.referrer.indexOf(APP_URL) === 0);
+  try {
+    if (desdeApp) sessionStorage.setItem('cosascon:desde-app', '1');
+    else desdeApp = sessionStorage.getItem('cosascon:desde-app') === '1';
+  } catch (e) { /* Sin almacenamiento de sesión: vale con lo que diga la dirección. */ }
+  let volverA = '/';
+  if (desdeApp) volverA = APP_URL;
+  el.volverInicio.href = volverA;
+  el.volverInicio.setAttribute('aria-label', desdeApp ? 'Volver a la app Cosas' : 'Volver a la portada de Cosas');
+}
+
 /* ---------- Arranque ---------- */
 
 async function arrancar() {
+  prepararVuelta();
   const config = window.COSAS_FIREBASE;
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
@@ -78,8 +121,8 @@ async function arrancar() {
 /* ---------- Rutas y vistas ---------- */
 
 function idDeUrl() {
-  const m = location.pathname.match(/^\/con\/([A-Za-z0-9]{8,24})\/?$/);
-  if (m) return m[1].toLowerCase();
+  const m = location.pathname.match(/^\/(con|de)\/([A-Za-z0-9]{8,24})\/?$/);
+  if (m) return m[2].toLowerCase();
   const q = new URLSearchParams(location.search).get('l');
   return esId(q) ? q : null;
 }
@@ -112,17 +155,26 @@ async function enrutar() {
   if (!datos) { document.title = 'Cosas con'; return mostrar('no-existe'); }
 
   if (!(datos.uids || []).includes(usuario.uid)) {
-    pendiente = { tipo: 'unirse', id, lista: datos };
+    /* «Cosas con» es solo para dos: si ya están, la tercera persona no entra. */
+    if (estaLlena(datos, usuario.uid)) return mostrarLlena();
+    pendiente = { accion: 'unirse', id, lista: datos };
     return pedirNombre(datos);
   }
   abrirLista(id, datos);
 }
 
+function mostrarLlena() {
+  pendiente = null;
+  document.title = 'Esta lista ya es de dos';
+  mostrar('llena');
+}
+
 /* ---------- Inicio ---------- */
 
 function mostrarInicio() {
-  document.title = 'Cosas con · listas compartidas';
+  document.title = tipoPagina === 'de' ? 'Cosas de · grupos por tema' : 'Cosas con · listas compartidas';
   mostrar('inicio');
+  elegirTipo(tipoPagina);
   medir();
   escucharMias();
   pintarCuenta();
@@ -136,24 +188,41 @@ function medir() {
 
 el.campoCon.addEventListener('input', medir);
 
+/* Pinta un conmutador y devuelve el tipo marcado. */
+function marcarConmutador(conmutador, tipo) {
+  conmutador.querySelectorAll('.conmutador-opcion').forEach(b => b.setAttribute('aria-checked', b.dataset.tipo === tipo ? 'true' : 'false'));
+}
+
+function elegirTipo(tipo) {
+  const t = TEXTOS[tipo];
+  el.tituloFijo.textContent = t.titulo;
+  el.campoCon.placeholder = t.ejemplo;
+  el.campoCon.setAttribute('aria-label', t.etiqueta);
+  el.campoCon.setAttribute('autocapitalize', tipo === 'con' ? 'words' : 'sentences');
+  el.inicioAyuda.textContent = t.ayuda;
+  el.crearTexto.textContent = t.boton;
+  el.tituloMias.textContent = t.mias;
+  medir();
+}
+
 el.formCrear.addEventListener('submit', async ev => {
   ev.preventDefault();
   const nombre = limpiar(el.campoCon.value, 40);
   if (!nombre) return;
-  pendiente = { tipo: 'crear', nombre };
+  pendiente = { accion: 'crear', nombre, tipo: tipoPagina };
   if (!perfil || !perfil.nombre) return pedirNombre(null);
-  await crearLista(nombre);
+  await crearLista(nombre, tipoPagina);
 });
 
-async function crearLista(nombre) {
+async function crearLista(nombre, tipo) {
   el.crear.disabled = true;
   try {
-    const id = await almacen.crearLista({ nombre, color: colorAleatorio(), perfil });
+    const id = await almacen.crearLista({ nombre, tipo, color: colorAleatorio(), perfil });
     pendiente = null;
     el.campoCon.value = '';
-    history.pushState({}, '', `/con/${id}`);
+    history.pushState({}, '', `/${tipo === 'de' ? 'de' : 'con'}/${id}`);
     await enrutar();
-    toast('Lista creada. Invita a alguien con el enlace.', { icono: true, duracion: 4200 });
+    toast(TEXTOS[tipo === 'de' ? 'de' : 'con'].creada, { icono: true, duracion: 4200 });
   } catch (e) {
     console.error(e);
     toast('No se pudo crear la lista. Inténtalo otra vez.');
@@ -163,14 +232,18 @@ async function crearLista(nombre) {
 
 function escucharMias() {
   if (pararMias) { pararMias(); pararMias = null; }
-  pararMias = almacen.escucharMisListas(listas => {
+  pararMias = almacen.escucharMisListas(todas => {
+    /* Cada apartado enseña las suyas; de las del otro, solo cuántas hay, con su enlace. */
+    const listas = todas.filter(l => tipoDe(l) === tipoPagina);
+    const otras = todas.length - listas.length;
+    pintarCruce(otras);
     el.bloqueMias.hidden = !listas.length;
     el.misListas.innerHTML = '';
     listas.forEach(l => {
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.className = 'mi-lista';
-      a.href = `/con/${l.id}`;
+      a.href = `/${tipoDe(l)}/${l.id}`;
       const miembros = Object.entries(l.miembros || {});
       const otros = miembros.filter(([u, m]) => u !== usuario.uid && m && m.nombre).map(([, m]) => m.nombre);
       let detalle;
@@ -178,13 +251,29 @@ function escucharMias() {
       else if (miembros.length === 2) detalle = `Tú y ${otros[0] || 'otra persona'}`;
       else detalle = `${miembros.length} personas`;
       a.innerHTML = `<span class="mi-lista-color" style="--color:${l.color || '#2F6FED'}"></span><span class="mi-lista-texto"><span class="mi-lista-nombre"></span><span class="mi-lista-detalle"></span></span>`;
-      a.querySelector('.mi-lista-nombre').textContent = tituloDe(l);
+      a.querySelector('.mi-lista-nombre').textContent = tituloDe(l, usuario.uid);
       a.querySelector('.mi-lista-detalle').textContent = detalle;
       a.addEventListener('click', ev => { ev.preventDefault(); ir(a.getAttribute('href')); });
       li.appendChild(a);
       el.misListas.appendChild(li);
     });
   });
+}
+
+function pintarCruce(otras) {
+  const t = TEXTOS[otroTipo];
+  el.cruce.innerHTML = '';
+  if (otras > 0) {
+    el.cruce.append(t.otras(otras) + '. ');
+  } else {
+    el.cruce.append(otroTipo === 'de'
+      ? '¿Sois más de dos, o es un tema como «Cosas de viaje»? '
+      : '¿Una lista solo entre dos, como «Cosas con Raúl»? ');
+  }
+  const a = document.createElement('a');
+  a.href = `/${otroTipo}/`;
+  a.innerHTML = `${t.ir} <span aria-hidden="true">→</span>`;
+  el.cruce.appendChild(a);
 }
 
 function pintarCuenta() {
@@ -247,9 +336,18 @@ el.salirCuenta.addEventListener('click', async () => {
 
 function pedirNombre(datos) {
   mostrar('nombre');
-  const creando = pendiente && pendiente.tipo === 'crear';
+  const creando = pendiente && pendiente.accion === 'crear';
   el.nombreAntetitulo.textContent = creando ? 'Casi está' : 'Te han invitado';
-  el.tituloNombre.textContent = creando ? `Cosas con ${pendiente.nombre}` : tituloDe(datos);
+  let titulo;
+  if (creando) {
+    titulo = `${TEXTOS[pendiente.tipo].titulo} ${pendiente.nombre}`;
+  } else if (tipoDe(datos) === 'con' && datos.miembros && datos.miembros[datos.creadaPor] && datos.miembros[datos.creadaPor].nombre) {
+    /* A quien invitan a una lista «con» se le enseña con quién: «Cosas con Ana». */
+    titulo = `Cosas con ${limpiar(datos.miembros[datos.creadaPor].nombre, 40)}`;
+  } else {
+    titulo = tituloDe(datos);
+  }
+  el.tituloNombre.textContent = titulo;
   el.nombreAyuda.textContent = creando
     ? 'Di cómo te llamas para que en la lista se sepa quién añade cada cosa. Solo lo preguntamos una vez.'
     : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
@@ -270,8 +368,8 @@ el.formNombre.addEventListener('submit', async ev => {
   almacen.guardarPerfil(perfil);
   el.entrar.disabled = true;
   try {
-    if (pendiente.tipo === 'crear') {
-      await crearLista(pendiente.nombre);
+    if (pendiente.accion === 'crear') {
+      await crearLista(pendiente.nombre, pendiente.tipo);
     } else {
       await almacen.unirse(pendiente.id, perfil);
       pendiente = null;
@@ -279,6 +377,7 @@ el.formNombre.addEventListener('submit', async ev => {
       toast(`Ya estás en la lista`, { icono: true });
     }
   } catch (e) {
+    if (e && e.message === 'lista-llena') return mostrarLlena();
     console.error(e);
     toast('No se pudo entrar en la lista.');
     el.entrar.disabled = false;
@@ -299,7 +398,7 @@ function abrirLista(id, datos) {
 
   pararLista = almacen.escucharLista(id, l => {
     if (!l) { cerrarLista(); document.title = 'Cosas con'; mostrar('no-existe'); return; }
-    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir('/con/'); toast('Ya no estás en esa lista.'); return; }
+    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast('Ya no estás en esa lista.'); return; }
     lista = l;
     pintarLista(l);
   });
@@ -330,7 +429,7 @@ function pintarColor(color) {
 }
 
 function pintarLista(l) {
-  const titulo = tituloDe(l);
+  const titulo = tituloDe(l, usuario.uid);
   el.tituloLista.textContent = titulo;
   document.title = titulo;
   pintarColor(colorPrevisualizado || l.color || '#2F6FED');
@@ -353,6 +452,10 @@ function pintarLista(l) {
   });
 
   el.borrarLista.hidden = l.creadaPor !== usuario.uid;
+  /* Con las dos personas dentro, «Cosas con» ya no admite a nadie: sin invitar. */
+  const deDos = esDeDos(l);
+  el.invitar.hidden = deDos;
+  el.soloDos.hidden = !deDos;
   /* Las cosas llevan el avatar de quien las añadió: si cambia un nombre o color, se repintan. */
   filas.forEach((li, cid) => { const c = cosasActuales.get(cid); if (c) actualizarFila(li, c); });
 }
@@ -474,14 +577,14 @@ el.formCosa.addEventListener('submit', async ev => {
   catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosa.value = texto; el.enviar.disabled = false; }
 });
 
-el.volver.addEventListener('click', ev => { ev.preventDefault(); ir('/con/'); });
+el.volver.addEventListener('click', ev => { ev.preventDefault(); ir(RUTA_INICIO); });
 
 /* ---------- Invitar ---------- */
 
 async function invitar() {
   if (!listaId) return;
-  const url = enlaceDe(listaId);
-  const titulo = tituloDe(lista);
+  const url = enlaceDe(listaId, tipoDe(lista));
+  const titulo = tituloDe(lista, usuario.uid);
   if (navigator.share) {
     try { await navigator.share({ title: titulo, text: `Únete a «${titulo}» y apuntamos las cosas juntos:`, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
@@ -490,17 +593,35 @@ async function invitar() {
 }
 
 async function copiar(texto) {
-  try { await navigator.clipboard.writeText(texto); toast('Enlace copiado', { icono: true }); }
-  catch (e) { window.prompt('Copia el enlace:', texto); }
+  try { await navigator.clipboard.writeText(texto); toast('Enlace copiado', { icono: true }); return; }
+  catch (e) { /* Sin permiso: se intenta a la antigua. */ }
+  try {
+    const area = document.createElement('textarea');
+    area.value = texto;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    if (ok) { toast('Enlace copiado', { icono: true }); return; }
+  } catch (e) { /* Tampoco. */ }
+  toast('No se pudo copiar. El enlace está en los ajustes de la lista.');
 }
 
 el.invitar.addEventListener('click', invitar);
-el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId)));
+el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista))));
 
 /* ---------- Ajustes de la lista (hoja) ---------- */
 
+let tipoAjuste = 'con';
+
 function abrirHoja() {
   if (!lista) return;
+  tipoAjuste = tipoDe(lista);
+  marcarConmutador(el.ajusteTipo, tipoAjuste);
+  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
+  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
   el.ajusteNombre.value = lista.nombre || '';
   el.ajusteMiNombre.value = perfil ? perfil.nombre : '';
   el.ajusteColores.innerHTML = '';
@@ -515,12 +636,20 @@ function abrirHoja() {
     b.setAttribute('aria-pressed', (lista.color || '').toUpperCase() === p.color.toUpperCase() ? 'true' : 'false');
     el.ajusteColores.appendChild(b);
   });
+  /* Con dos personas en una lista «con» no hay enlace que copiar. */
+  el.copiarEnlace.hidden = esDeDos(lista);
+  /* Para pasar a «Cosas con», la lista tiene que ser de dos como mucho. */
+  const opcionCon = el.ajusteTipo.querySelector('[data-tipo="con"]');
+  opcionCon.disabled = (lista.uids || []).length > 2;
+  opcionCon.title = opcionCon.disabled ? '«Cosas con» es solo para dos personas' : '';
   el.hojaNota.innerHTML = '';
-  if (almacen.modo === 'local') {
+  if (esDeDos(lista)) {
+    el.hojaNota.textContent = '«Cosas con» es solo para dos y ya estáis los dos: el enlace no admite a nadie más. Si queréis apuntar cosas más gente, cread un grupo en Cosas de.';
+  } else if (almacen.modo === 'local') {
     el.hojaNota.textContent = 'Modo local: esta lista solo existe en este navegador y el enlace solo funciona aquí. Cuando la web tenga activada la sincronización, las listas se podrán compartir de verdad.';
   } else {
     const code = document.createElement('code');
-    code.textContent = enlaceDe(listaId);
+    code.textContent = enlaceDe(listaId, tipoDe(lista));
     el.hojaNota.append('Cualquiera con el enlace puede entrar en la lista: ', code);
   }
   el.hoja.classList.add('abierta');
@@ -543,6 +672,15 @@ el.cerrarHoja.addEventListener('click', cerrarHoja);
 el.hojaVelo.addEventListener('click', cerrarHoja);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja(); });
 
+el.ajusteTipo.addEventListener('click', ev => {
+  const b = ev.target.closest('.conmutador-opcion');
+  if (!b || b.disabled) return;
+  tipoAjuste = b.dataset.tipo === 'de' ? 'de' : 'con';
+  marcarConmutador(el.ajusteTipo, tipoAjuste);
+  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
+  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
+});
+
 el.ajusteColores.addEventListener('click', ev => {
   const b = ev.target.closest('.hoja-muestra');
   if (!b) return;
@@ -559,6 +697,7 @@ el.formAjustes.addEventListener('submit', async ev => {
   const miNombre = limpiar(el.ajusteMiNombre.value, 40) || (perfil && perfil.nombre);
   const cambios = {};
   if (nombre !== lista.nombre) cambios.nombre = nombre;
+  if (tipoAjuste !== tipoDe(lista)) cambios.tipo = tipoAjuste;
   if (color !== lista.color) cambios.color = color;
   try {
     if (Object.keys(cambios).length) await almacen.actualizarLista(listaId, cambios);
@@ -568,37 +707,55 @@ el.formAjustes.addEventListener('submit', async ev => {
       await almacen.actualizarMiembro(listaId, perfil);
     }
     if (color) lista = { ...lista, color };
+    if (cambios.tipo) { lista = { ...lista, tipo: cambios.tipo }; history.replaceState({}, '', `/${cambios.tipo}/${listaId}`); }
     colorPrevisualizado = null;
     cerrarHoja();
     toast('Guardado', { icono: true });
-  } catch (e) { console.error(e); toast('No se pudo guardar.'); }
+  } catch (e) {
+    if (e && e.message === 'demasiados') return toast('«Cosas con» es solo para dos personas.');
+    console.error(e);
+    toast('No se pudo guardar.');
+  }
 });
 
-el.salirLista.addEventListener('click', async () => {
+/* Las acciones delicadas se confirman tocando dos veces el mismo botón: sin diálogos del navegador. */
+function confirmarDosVeces(boton, textoOriginal, alConfirmar) {
+  if (boton.dataset.confirmando) {
+    delete boton.dataset.confirmando;
+    boton.textContent = textoOriginal;
+    alConfirmar();
+    return;
+  }
+  boton.dataset.confirmando = '1';
+  boton.textContent = '¿Seguro? Toca otra vez';
+  setTimeout(() => {
+    if (boton.dataset.confirmando) { delete boton.dataset.confirmando; boton.textContent = textoOriginal; }
+  }, 4000);
+}
+
+el.salirLista.addEventListener('click', () => confirmarDosVeces(el.salirLista, 'Salir de la lista', async () => {
   if (!listaId) return;
-  if (!window.confirm(`¿Salir de «${tituloDe(lista)}»? Podrás volver a entrar con el enlace.`)) return;
   const id = listaId;
   try {
     cerrarHoja();
     cerrarLista();
     await almacen.salir(id);
-    ir('/con/');
+    ir(RUTA_INICIO);
     toast('Has salido de la lista', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo salir.'); enrutar(); }
-});
+}));
 
-el.borrarLista.addEventListener('click', async () => {
+el.borrarLista.addEventListener('click', () => confirmarDosVeces(el.borrarLista, 'Borrar la lista para todos', async () => {
   if (!listaId) return;
-  if (!window.confirm(`¿Borrar «${tituloDe(lista)}» para todos? No se puede deshacer.`)) return;
   const id = listaId;
   try {
     cerrarHoja();
     cerrarLista();
     await almacen.borrarLista(id);
-    ir('/con/');
+    ir(RUTA_INICIO);
     toast('Lista borrada', { icono: true });
   } catch (e) { console.error(e); toast('No se pudo borrar.'); enrutar(); }
-});
+}));
 
 /* ---------- Estado ---------- */
 

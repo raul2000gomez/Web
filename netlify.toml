@@ -1,4 +1,4 @@
-# cosas.es · Netlify
+# cosas.info · Netlify
 # La web es estática: no hay build. «Cosas con» usa rutas bonitas (/con/ID),
 # que se sirven todas desde /con/index.html.
 
@@ -8,6 +8,12 @@
 [[redirects]]
   from = "/con/*"
   to = "/con/index.html"
+  status = 200
+
+# «Cosas de …» tiene su propia página; /de/ID abre el grupo ID.
+[[redirects]]
+  from = "/de/*"
+  to = "/de/index.html"
   status = 200
 
 [[headers]]

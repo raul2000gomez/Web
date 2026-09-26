@@ -4,15 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Cosas · Apunta las cosas. Sin más.</title>
-  <meta name="description" content="Cosas es una app sencilla para apuntar lo que tienes que hacer: escribe o dicta, tacha lo hecho y agrúpalo por colores. Gratis, sin cuenta y sin conexión. Con «Cosas con» creas listas compartidas en tiempo real.">
+  <meta name="description" content="Cosas es una app sencilla para apuntar lo que tienes que hacer: escribe o dicta, tacha lo hecho y agrúpalo por colores. Gratis, sin cuenta y sin conexión. Con «Cosas con» y «Cosas de» creas listas compartidas en tiempo real.">
   <meta name="theme-color" content="#F6F3EC" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
-  <link rel="canonical" href="https://cosas.es/">
+  <link rel="canonical" href="https://cosas.info/">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Cosas · Apunta las cosas. Sin más.">
   <meta property="og:description" content="Una app sencilla para apuntar lo que tienes que hacer. Gratis, sin cuenta y sin conexión. Y con «Cosas con», listas compartidas en tiempo real.">
-  <meta property="og:url" content="https://cosas.es/">
-  <meta property="og:image" content="https://cosas.es/icons/og.png">
+  <meta property="og:url" content="https://cosas.info/">
+  <meta property="og:image" content="https://cosas.info/icons/og.png">
   <meta property="og:locale" content="es_ES">
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
@@ -38,6 +38,7 @@
         <a href="#caracteristicas">Qué tiene</a>
         <a href="#instalar">Instalar</a>
         <a href="#cosas-con">Cosas con</a>
+        <a href="#cosas-de">Cosas de</a>
       </nav>
       <a class="boton boton-primario" href="https://cosas-app.netlify.app" target="_blank" rel="noopener">
         Abrir la app
@@ -71,22 +72,47 @@
         </div>
 
         <div class="hero-visual">
-          <div class="telefono" data-telefono data-tono="oscuro" aria-label="Demostración de la app Cosas" role="img">
+          <div class="telefono" data-telefono data-tono="oscuro" data-pantalla="inicio" aria-label="Demostración de la app Cosas: se escribe una cosa, se guarda, se abre la lista y se tacha" role="img">
             <div class="pantalla">
-              <div class="tel-esquinas" aria-hidden="true">
-                <span class="tel-redondo"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span>
-                <span class="tel-redondo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
-              </div>
-              <ul class="tel-lista" id="demo-lista" aria-hidden="true"></ul>
-              <div class="tel-barra" aria-hidden="true">
-                <div class="tel-pildora" id="demo-pildora">
-                  <span class="tel-campo" id="demo-campo"></span>
-                  <span class="tel-ranura">
-                    <span class="tel-micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span>
-                    <span class="tel-enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></span>
-                  </span>
+
+              <!-- Pantalla principal: dos botones y la barra de escribir, como en la app. -->
+              <div class="tel-vista tel-vista-inicio" aria-hidden="true">
+                <div class="tel-esquinas">
+                  <span class="tel-redondo" id="demo-boton-lista"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span>
+                  <span class="tel-redondo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
+                </div>
+                <!-- Los accesos directos a Cosas con y Cosas de, como en la pantalla de inicio de la app. -->
+                <div class="tel-accesos">
+                  <span class="tel-acceso"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Cosas con</span>
+                  <span class="tel-acceso"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2.5"/><rect x="13" y="3" width="8" height="8" rx="2.5"/><rect x="3" y="13" width="8" height="8" rx="2.5"/><rect x="13" y="13" width="8" height="8" rx="2.5"/></svg>Cosas de</span>
+                </div>
+                <div class="tel-toast tel-toast-arriba" id="demo-toast-inicio"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg><span>Guardado</span></div>
+                <div class="tel-barra">
+                  <div class="tel-pildora" id="demo-pildora">
+                    <span class="tel-campo" id="demo-campo"></span>
+                    <span class="tel-ranura">
+                      <span class="tel-micro" id="demo-micro"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></span>
+                      <span class="tel-enviar" id="demo-enviar"><svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></span>
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              <!-- Vista de la lista: cabecera con «Volver», las cosas y la barra «Crear grupo de cosas». -->
+              <div class="tel-vista tel-vista-lista" aria-hidden="true">
+                <div class="tel-cabecera">
+                  <span class="tel-redondo" id="demo-boton-volver"><svg viewBox="0 0 24 24"><path d="M19 12H5M11.5 18.5 5 12l6.5-6.5"/></svg></span>
+                  <span class="tel-titulo-vista">Cosas</span>
+                  <span></span>
+                </div>
+                <ul class="tel-lista" id="demo-lista"></ul>
+                <div class="tel-toast tel-toast-abajo" id="demo-toast-lista"><svg viewBox="0 0 24 24"><path d="M19 7 10 16.5 5 12"/></svg><span>Eliminada</span><b id="demo-deshacer">Deshacer</b></div>
+                <div class="tel-barra">
+                  <div class="tel-pildora tel-pildora-boton">Crear grupo de cosas</div>
+                </div>
+              </div>
+
+              <span class="tel-dedo" id="demo-dedo" aria-hidden="true"></span>
             </div>
           </div>
           <div class="muestras" data-muestras role="group" aria-label="Color de fondo de la app">
@@ -325,29 +351,58 @@
     </section>
 
     <!-- ====== Cosas con ====== -->
-    <section class="seccion" id="cosas-con" style="padding-top:0">
+    <section class="seccion seccion-junta" id="cosas-con">
       <div class="seccion-interior">
         <div class="con-anuncio revelar">
           <div class="con-anuncio-interior">
             <div>
-              <p class="antetitulo">Nuevo · Listas compartidas</p>
-              <h2 class="titulo-seccion">Cosas con <span class="nombre-rotando" id="nombre-rotando" aria-live="off"><span class="activo">Raúl</span><span>mamá</span><span>Lucía</span><span>los del piso</span><span>el equipo</span></span></h2>
-              <p class="entradilla">Una lista con otra persona, o con varias. Tú añades desde tu móvil y ellos lo ven al momento en el suyo. Sin instalar nada: basta un enlace.</p>
+              <p class="antetitulo">Cosas con · entre dos personas</p>
+              <h2 class="titulo-seccion">Cosas con <span class="nombre-rotando" aria-live="off"><span class="activo">Raúl</span><span>mamá</span><span>Lucía</span><span>los del piso</span></span></h2>
+              <p class="entradilla">Una lista para dos, y solo para dos: la compra, lo de casa, lo que hay que hacer. Tú añades desde tu móvil y la otra persona lo ve al momento en el suyo. Nadie más entra. Sin instalar nada: basta un enlace.</p>
               <div class="hero-acciones">
                 <a class="boton boton-primario" href="/con/">
-                  Crear una lista
+                  Crear una lista con alguien
                   <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
               </div>
             </div>
             <div class="con-demo" aria-hidden="true" id="con-demo">
               <div class="mini-telefono" data-tono="claro">
-                <p class="tel-titulo">Cosas con Raúl</p>
+                <p class="tel-titulo">Cosas con Ana</p>
                 <div class="tel-lista-con"></div>
                 <div class="tel-pildora"><span class="tel-campo"></span></div>
               </div>
               <div class="mini-telefono" data-tono="claro">
-                <p class="tel-titulo">Cosas con Ana</p>
+                <p class="tel-titulo">Cosas con Raúl</p>
+                <div class="tel-lista-con"></div>
+                <div class="tel-pildora"><span class="tel-campo"></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== Cosas de ====== -->
+    <section class="seccion" id="cosas-de" style="padding-top:0">
+      <div class="seccion-interior">
+        <div class="con-anuncio anuncio-de revelar">
+          <div class="con-anuncio-interior">
+            <div>
+              <p class="antetitulo">Cosas de · un grupo alrededor de un tema</p>
+              <h2 class="titulo-seccion">Cosas de <span class="nombre-rotando" aria-live="off"><span class="activo">trabajo</span><span>viaje</span><span>la boda</span><span>clase</span></span></h2>
+              <p class="entradilla">Un grupo de gente y un tema: el equipo, el viaje de amigos, la boda. Todos ven y añaden las cosas de ese tema, y se ve quién ha puesto cada una. Sin instalar nada: basta un enlace.</p>
+              <div class="hero-acciones">
+                <a class="boton boton-primario" href="/de/">
+                  Crear un grupo
+                  <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+              </div>
+            </div>
+            <div class="con-demo de-demo" aria-hidden="true" id="de-demo">
+              <div class="mini-telefono" data-tono="claro">
+                <p class="tel-titulo">Cosas de viaje</p>
+                <div class="tel-miembros"><span class="con-avatar" style="--avatar:#2F6FED">R</span><span class="con-avatar" style="--avatar:#EF5B5B">A</span><span class="con-avatar" style="--avatar:#7A4FD6">L</span></div>
                 <div class="tel-lista-con"></div>
                 <div class="tel-pildora"><span class="tel-campo"></span></div>
               </div>
@@ -371,10 +426,11 @@
       <nav class="pie-enlaces" aria-label="Pie">
         <a href="https://cosas-app.netlify.app" target="_blank" rel="noopener">Abrir la app</a>
         <a href="/con/">Cosas con</a>
+        <a href="/de/">Cosas de</a>
         <a href="#como-funciona">Cómo funciona</a>
         <a href="#instalar">Instalar</a>
       </nav>
-      <p class="pie-nota">cosas.es · Hecho con cariño en España.</p>
+      <p class="pie-nota">cosas.info · Hecho con cariño en España.</p>
     </div>
   </footer>
 
