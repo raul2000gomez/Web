@@ -4,10 +4,10 @@
    en el navegador y no se pueden compartir con otras personas. */
 
 window.COSAS_FIREBASE = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyCaJYMTYFMCjf6chnNDeIu40arErPtfhhE",
+  authDomain: "cosas-info.firebaseapp.com",
+  projectId: "cosas-info",
+  storageBucket: "cosas-info.firebasestorage.app",
+  messagingSenderId: "528484373309",
+  appId: "1:528484373309:web:c7631cd1e1c72164f0ab54"
 };
