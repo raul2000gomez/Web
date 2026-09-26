@@ -1,4 +1,4 @@
-/* cosas.es · almacén local para «Cosas con»
+/* cosas.info · almacén local para «Cosas con»
    Se usa cuando Firebase no está configurado. Guarda todo en el navegador y avisa a las
    demás pestañas con el evento «storage», así una lista abierta en dos pestañas se mantiene
    al día. No puede compartir con otras personas: para eso hace falta la nube. */

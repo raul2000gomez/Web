@@ -1,4 +1,4 @@
-/* cosas.es · almacén en la nube para «Cosas con» (Firebase: Auth + Firestore)
+/* cosas.info · almacén en la nube para «Cosas con» (Firebase: Auth + Firestore)
    Cada persona entra de forma anónima sin darse cuenta; si quiere tener sus listas en
    todos sus dispositivos, enlaza la cuenta con Google. Las listas se sincronizan en
    tiempo real y funcionan sin conexión gracias a la caché de Firestore. */

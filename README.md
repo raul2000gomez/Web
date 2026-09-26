@@ -1,4 +1,4 @@
-# cosas.es
+# cosas.info
 
 La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 ([cosas-app.netlify.app](https://cosas-app.netlify.app)). Dos partes:
@@ -8,8 +8,8 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
   cuando ya están las dos, el enlace no admite a nadie más (lo impiden la web y las reglas de Firestore).
 - **Cosas de** (`/de/`): un grupo de gente alrededor de un tema, «Cosas de trabajo» o «Cosas de viaje».
 
-Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.es/con/…` o
-`cosas.es/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
+Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.info/con/…` o
+`cosas.info/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
 
 Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se sube tal cual.
 
@@ -38,7 +38,7 @@ icons/                Favicon, icono de iOS e imagen para redes
 
 La pantalla de inicio de la app (repositorio `raul2000gomez/cosas`) lleva dos píldoras, **Cosas con**
 y **Cosas de**, que abren cada apartado con `?desde=app`; con eso, la flecha de arriba a la izquierda
-de estas páginas vuelve a la app. Los enlaces de la app apuntan a `cosas.es`: publica esta web en ese
+de estas páginas vuelve a la app. Los enlaces de la app apuntan a `cosas.info`: publica esta web en ese
 dominio (o cambia el dominio en `app/index.html` de la app) antes de publicar la app con los accesos.
 
 ## Publicar en Netlify
@@ -46,7 +46,7 @@ dominio (o cambia el dominio en `app/index.html` de la app) antes de publicar la
 1. Entra en [app.netlify.com](https://app.netlify.com) → **Add new site** → **Import an existing project** y elige este repositorio.
 2. Deja **Build command** vacío y **Publish directory** en `.` (el `netlify.toml` ya lo dice).
 3. Pulsa **Deploy**. En un minuto la web está en `algo.netlify.app`.
-4. Para usar **cosas.es**: en Netlify, **Domain management** → **Add a domain** → `cosas.es`, y en el
+4. Para usar **cosas.info**: en Netlify, **Domain management** → **Add a domain** → `cosas.info`, y en el
    registrador del dominio apunta los DNS a Netlify como te indique. Netlify pone el certificado HTTPS solo.
 
 También vale arrastrar la carpeta entera a [app.netlify.com/drop](https://app.netlify.com/drop).
@@ -64,14 +64,14 @@ entrar con Google para tener sus listas en el móvil y en el ordenador.
    activa dos proveedores:
    - **Anónimo** (para que nadie tenga que registrarse para usar una lista).
    - **Google** (para quien quiera sus listas en varios dispositivos). Pide un correo de soporte; pon el tuyo.
-3. En **Authentication → Configuración → Dominios autorizados** añade `cosas.es` (y el dominio
+3. En **Authentication → Configuración → Dominios autorizados** añade `cosas.info` (y el dominio
    `.netlify.app` que te haya dado Netlify). Sin esto, el botón de Google no funciona en la web.
 4. En **Compilación → Firestore Database** → **Crear base de datos**. Elige una ubicación europea
    (por ejemplo `eur3` o `europe-west`) y **modo de producción**.
 5. En la pestaña **Reglas** de Firestore, borra lo que hay, pega el contenido de `firestore.rules`
    y pulsa **Publicar**.
 6. En la rueda de **Configuración del proyecto** → abajo, **Tus apps** → icono **Web (</>)**.
-   Ponle un apodo (`cosas.es`), no marques Hosting, y **Registrar app**. Verás un bloque
+   Ponle un apodo (`cosas.info`), no marques Hosting, y **Registrar app**. Verás un bloque
    `const firebaseConfig = { apiKey: "...", ... }`.
 7. Copia esos valores en `firebase-config.js` de este repositorio:
 
@@ -102,7 +102,7 @@ listas son las reglas de `firestore.rules`.
   «Cosas con Raúl» y Raúl ve «Cosas con Ana»), y una tercera con el enlace ve «Esta lista ya es
   de dos» y la invitación a crear un grupo en Cosas de. Una lista «de» no tiene límite y se llama
   igual para todos: «Cosas de viaje».
-- Cualquiera con el enlace (`cosas.es/con/ID` o `cosas.es/de/ID`) puede unirse; solo los miembros
+- Cualquiera con el enlace (`cosas.info/con/ID` o `cosas.info/de/ID`) puede unirse; solo los miembros
   ven y tocan las cosas; solo quien creó la lista puede borrarla para todos.
 - **Continuar con Google** enlaza la sesión anónima con la cuenta de Google: el mismo uid, las
   mismas listas, ahora también en otros dispositivos. Si ese Google ya tenía cuenta, se entra con

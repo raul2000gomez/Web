@@ -1,4 +1,4 @@
-/* cosas.es · portada
+/* cosas.info · portada
    Animaciones de la portada: la cabecera al hacer scroll, los bloques que aparecen,
    la demostración del teléfono, las muestras de color, las pestañas de instalar
    y el nombre que cambia en «Cosas con». Todo se apaga con «reducir movimiento». */

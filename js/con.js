@@ -1,4 +1,4 @@
-/* cosas.es · Cosas con
+/* cosas.info · Cosas con
    La página de las listas compartidas. Elige el almacén (la nube si hay configuración de
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */

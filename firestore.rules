@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// cosas.es · reglas de Firestore para «Cosas con»
+// cosas.info · reglas de Firestore para «Cosas con»
 // Pégalas en Firebase → Firestore Database → Reglas y publica.
 //
 // Modelo:
