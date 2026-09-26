@@ -40,7 +40,9 @@ let pendiente = null;          // { accion: 'crear', nombre, tipo } | { accion: 
 /* Cada apartado es una página: /con/ (con una persona) y /de/ (un grupo alrededor de un tema).
    La página declara su tipo en data-tipo; la lógica es la misma. */
 const tipoPagina = el.app.dataset.tipo === 'de' ? 'de' : 'con';
-const RUTA_INICIO = `/${tipoPagina}/`;
+/* La base de la web: vacía en cosas.info; «/Web» si se sirve desde una subcarpeta (GitHub Pages). */
+const BASE = (location.pathname.match(/^(.*?)\/(con|de)(?:\/[^/]*)?\/?$/) || ['', ''])[1];
+const RUTA_INICIO = `${BASE}/${tipoPagina}/`;
 const otroTipo = tipoPagina === 'de' ? 'con' : 'de';
 
 /* Textos que cambian según el tipo. */
@@ -77,7 +79,7 @@ function prepararVuelta() {
     if (desdeApp) sessionStorage.setItem('cosascon:desde-app', '1');
     else desdeApp = sessionStorage.getItem('cosascon:desde-app') === '1';
   } catch (e) { /* Sin almacenamiento de sesión: vale con lo que diga la dirección. */ }
-  let volverA = '/';
+  let volverA = `${BASE}/`;
   if (desdeApp) volverA = APP_URL;
   el.volverInicio.href = volverA;
   el.volverInicio.setAttribute('aria-label', desdeApp ? 'Volver a la app Cosas' : 'Volver a la portada de Cosas');
@@ -121,7 +123,7 @@ async function arrancar() {
 /* ---------- Rutas y vistas ---------- */
 
 function idDeUrl() {
-  const m = location.pathname.match(/^\/(con|de)\/([A-Za-z0-9]{8,24})\/?$/);
+  const m = location.pathname.match(/\/(con|de)\/([A-Za-z0-9]{8,24})\/?$/);
   if (m) return m[2].toLowerCase();
   const q = new URLSearchParams(location.search).get('l');
   return esId(q) ? q : null;
@@ -148,6 +150,9 @@ async function enrutar() {
   cerrarLista();
   const id = idDeUrl();
   if (!id) return mostrarInicio();
+  /* Si se ha llegado con ?l=ID (así llega desde 404.html en un servidor sin redirecciones), se
+     deja la dirección bonita. */
+  if (new URLSearchParams(location.search).get('l')) history.replaceState({}, '', `${RUTA_INICIO}${id}`);
 
   mostrar('cargando');
   let datos = null;
@@ -220,7 +225,7 @@ async function crearLista(nombre, tipo) {
     const id = await almacen.crearLista({ nombre, tipo, color: colorAleatorio(), perfil });
     pendiente = null;
     el.campoCon.value = '';
-    history.pushState({}, '', `/${tipo === 'de' ? 'de' : 'con'}/${id}`);
+    history.pushState({}, '', `${BASE}/${tipo === 'de' ? 'de' : 'con'}/${id}`);
     await enrutar();
     toast(TEXTOS[tipo === 'de' ? 'de' : 'con'].creada, { icono: true, duracion: 4200 });
   } catch (e) {
@@ -243,7 +248,7 @@ function escucharMias() {
       const li = document.createElement('li');
       const a = document.createElement('a');
       a.className = 'mi-lista';
-      a.href = `/${tipoDe(l)}/${l.id}`;
+      a.href = `${BASE}/${tipoDe(l)}/${l.id}`;
       const miembros = Object.entries(l.miembros || {});
       const otros = miembros.filter(([u, m]) => u !== usuario.uid && m && m.nombre).map(([, m]) => m.nombre);
       let detalle;
@@ -271,7 +276,7 @@ function pintarCruce(otras) {
       : '¿Una lista solo entre dos, como «Cosas con Raúl»? ');
   }
   const a = document.createElement('a');
-  a.href = `/${otroTipo}/`;
+  a.href = `${BASE}/${otroTipo}/`;
   a.innerHTML = `${t.ir} <span aria-hidden="true">→</span>`;
   el.cruce.appendChild(a);
 }
@@ -583,7 +588,7 @@ el.volver.addEventListener('click', ev => { ev.preventDefault(); ir(RUTA_INICIO)
 
 async function invitar() {
   if (!listaId) return;
-  const url = enlaceDe(listaId, tipoDe(lista));
+  const url = enlaceDe(listaId, tipoDe(lista), BASE);
   const titulo = tituloDe(lista, usuario.uid);
   if (navigator.share) {
     try { await navigator.share({ title: titulo, text: `Únete a «${titulo}» y apuntamos las cosas juntos:`, url }); return; }
@@ -610,7 +615,7 @@ async function copiar(texto) {
 }
 
 el.invitar.addEventListener('click', invitar);
-el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista))));
+el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista), BASE)));
 
 /* ---------- Ajustes de la lista (hoja) ---------- */
 
@@ -649,7 +654,7 @@ function abrirHoja() {
     el.hojaNota.textContent = 'Modo local: esta lista solo existe en este navegador y el enlace solo funciona aquí. Cuando la web tenga activada la sincronización, las listas se podrán compartir de verdad.';
   } else {
     const code = document.createElement('code');
-    code.textContent = enlaceDe(listaId, tipoDe(lista));
+    code.textContent = enlaceDe(listaId, tipoDe(lista), BASE);
     el.hojaNota.append('Cualquiera con el enlace puede entrar en la lista: ', code);
   }
   el.hoja.classList.add('abierta');
@@ -707,7 +712,7 @@ el.formAjustes.addEventListener('submit', async ev => {
       await almacen.actualizarMiembro(listaId, perfil);
     }
     if (color) lista = { ...lista, color };
-    if (cambios.tipo) { lista = { ...lista, tipo: cambios.tipo }; history.replaceState({}, '', `/${cambios.tipo}/${listaId}`); }
+    if (cambios.tipo) { lista = { ...lista, tipo: cambios.tipo }; history.replaceState({}, '', `${BASE}/${cambios.tipo}/${listaId}`); }
     colorPrevisualizado = null;
     cerrarHoja();
     toast('Guardado', { icono: true });
