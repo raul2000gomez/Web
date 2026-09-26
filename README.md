@@ -86,6 +86,8 @@ entrar con Google para tener sus listas en el móvil y en el ordenador.
    (por ejemplo `eur3` o `europe-west`) y **modo de producción**.
 5. En la pestaña **Reglas** de Firestore, borra lo que hay, pega el contenido de `firestore.rules`
    y pulsa **Publicar**.
+   (Con `firebase-tools` en el ordenador vale `firebase deploy --only firestore:rules --project TU_ID`:
+   `firebase.json` ya apunta a ese archivo.)
 6. En la rueda de **Configuración del proyecto** → abajo, **Tus apps** → icono **Web (</>)**.
    Ponle un apodo (`cosas.info`), no marques Hosting, y **Registrar app**. Verás un bloque
    `const firebaseConfig = { apiKey: "...", ... }`.
