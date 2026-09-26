@@ -157,7 +157,7 @@ async function enrutar() {
   mostrar('cargando');
   let datos = null;
   try { datos = await almacen.leerLista(id); } catch (e) { console.warn('No se pudo leer la lista', e); }
-  if (!datos) { document.title = 'Cosas con'; return mostrar('no-existe'); }
+  if (!datos) { document.title = TEXTOS[tipoPagina].titulo; return mostrar('no-existe'); }
 
   if (!(datos.uids || []).includes(usuario.uid)) {
     /* «Cosas con» es solo para dos: si ya están, la tercera persona no entra. */
@@ -402,7 +402,7 @@ function abrirLista(id, datos) {
   pintarLista(datos);
 
   pararLista = almacen.escucharLista(id, l => {
-    if (!l) { cerrarLista(); document.title = 'Cosas con'; mostrar('no-existe'); return; }
+    if (!l) { cerrarLista(); document.title = TEXTOS[tipoPagina].titulo; mostrar('no-existe'); return; }
     if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast('Ya no estás en esa lista.'); return; }
     lista = l;
     pintarLista(l);
