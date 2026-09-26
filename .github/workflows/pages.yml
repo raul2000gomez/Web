@@ -1,4 +1,5 @@
-# Publica la web en GitHub Pages cada vez que cambia main. No hay build: se sube tal cual.
+# Publica la web en GitHub Pages: cada cambio en main se copia a la rama gh-pages, que es la
+# que sirve GitHub Pages (se activa sola al existir esa rama). No hay build: se sube tal cual.
 name: Publicar en GitHub Pages
 
 on:
@@ -7,9 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
@@ -18,16 +17,7 @@ concurrency:
 jobs:
   publicar:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-      - id: despliegue
-        uses: actions/deploy-pages@v4
+      - name: Copiar main a gh-pages
+        run: git push --force origin HEAD:gh-pages
