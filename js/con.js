@@ -60,6 +60,15 @@ let colorPrevisualizado = null;
    la app instalada las abre como pantallas suyas, sin la barra del navegador. */
 const EN_LA_APP = location.origin === new URL(APP_URL).origin;
 
+/* iPhone o iPad en Safari, no en la app de la pantalla de inicio (iPadOS se presenta como un Mac: lo
+   delata la pantalla táctil). Ahí Safari y la app guardan sus datos por separado y un enlace nunca
+   abre la app: una invitación aceptada en Safari solo llega a la app a través de la cuenta de Google.
+   Por eso, al pulsar Entrar, se elige antes la cuenta de Google y luego se entra en la lista con ella. */
+const EN_SAFARI_DE_IOS = (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1))
+  && !(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+/* La lista en la que entrar al volver de Google (sessionStorage: sobrevive a la ida y vuelta, no a cerrar la pestaña). */
+const CLAVE_ENTRAR_TRAS_GOOGLE = 'cosascon:entrar-tras-google';
+
 /* El color de fondo que el usuario eligió en la app, el mismo en Cosas con y en Cosas de (una
    lista abierta lleva el suyo, como un grupo en la app). Dentro de la app se lee de sus datos;
    en cosas.info no se puede y queda el azul de la app. El <head> ya lo pinta antes de cargar. */
@@ -99,7 +108,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js');
+      const m = await import('./almacen-firebase.js?v=2'); // Con versión: hace falta redireccion().
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -116,6 +125,12 @@ async function arrancar() {
   });
 
   await almacen.iniciar();
+  /* Si se vuelve de elegir la cuenta de Google para entrar en una lista, se espera a que la sesión sea
+     ya la de esa cuenta (solo entonces: no retrasa el resto de las visitas). */
+  if (hayEntradaPendiente() && typeof almacen.redireccion === 'function') {
+    try { await almacen.redireccion(); } catch (e) { console.warn('Vuelta de Google', e); }
+    usuario = almacen.usuario() || usuario;
+  }
   perfil = await almacen.leerPerfil();
   if (!perfil && usuario && usuario.nombre) {
     perfil = { nombre: limpiar(usuario.nombre.split(' ')[0], 40), color: colorPara(usuario.nombre) };
@@ -169,9 +184,30 @@ async function enrutar() {
     /* «Cosas con» es solo para dos: si ya están, la tercera persona no entra. */
     if (estaLlena(datos, usuario.uid)) return mostrarLlena();
     pendiente = { accion: 'unirse', id, lista: datos };
+    /* De vuelta de Google tras pulsar Entrar (Safari de iPhone): se termina de entrar sin volver a preguntar. */
+    if (entrarTrasGoogle(id) && perfil && perfil.nombre) return entrarEnLista();
     return pedirNombre(datos);
   }
+  entrarTrasGoogle(id);
   abrirLista(id, datos);
+}
+
+function hayEntradaPendiente() {
+  try { return sessionStorage.getItem(CLAVE_ENTRAR_TRAS_GOOGLE) !== null; } catch (e) { return false; }
+}
+
+/* ¿Se había pulsado Entrar en esta lista antes de ir a Google? Lo dice una sola vez. */
+function entrarTrasGoogle(id) {
+  try {
+    const pedida = sessionStorage.getItem(CLAVE_ENTRAR_TRAS_GOOGLE);
+    sessionStorage.removeItem(CLAVE_ENTRAR_TRAS_GOOGLE);
+    return pedida === id;
+  } catch (e) { return false; }
+}
+
+/* Al entrar en una invitación desde Safari de iPhone o iPad, con la nube y aún sin cuenta, se pasa antes por Google. */
+function conGoogleAlEntrar() {
+  return EN_SAFARI_DE_IOS && almacen && almacen.modo === 'nube' && usuario && usuario.anonimo;
 }
 
 function mostrarLlena() {
@@ -418,7 +454,9 @@ function pedirNombre(datos) {
   el.tituloNombre.textContent = titulo;
   el.nombreAyuda.textContent = creando
     ? 'Di cómo te llamas para que en la lista se sepa quién añade cada cosa. Solo lo preguntamos una vez.'
-    : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
+    : conGoogleAlEntrar()
+      ? 'Di cómo te llamas y, al entrar, elige tu cuenta de Google: así la lista llega también a tu app Cosas.'
+      : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
   document.title = el.tituloNombre.textContent;
   el.campoNombre.value = perfil && perfil.nombre ? perfil.nombre : (usuario && usuario.nombre ? usuario.nombre.split(' ')[0] : '');
   el.entrar.disabled = !limpiar(el.campoNombre.value, 40);
@@ -435,22 +473,46 @@ el.formNombre.addEventListener('submit', async ev => {
   perfil = { nombre, color: (perfil && perfil.color && !usados.includes(perfil.color)) ? perfil.color : colorPara(nombre, usados) };
   almacen.guardarPerfil(perfil);
   el.entrar.disabled = true;
-  try {
-    if (pendiente.accion === 'crear') {
+  if (pendiente.accion === 'crear') {
+    try {
       await crearLista(pendiente.nombre, pendiente.tipo);
-    } else {
-      await almacen.unirse(pendiente.id, perfil);
-      pendiente = null;
-      await enrutar();
-      toast(`Ya estás en la lista`, { icono: true });
+    } catch (e) {
+      console.error(e);
+      el.entrar.disabled = false;
     }
+    return;
+  }
+  if (conGoogleAlEntrar()) {
+    /* Safari de iPhone: primero la cuenta de Google (la página se va y vuelve), luego se entra con ella. */
+    try {
+      sessionStorage.setItem(CLAVE_ENTRAR_TRAS_GOOGLE, pendiente.id);
+      await almacen.iniciarSesionGoogle(perfil, { porRedireccion: true });
+      return;
+    } catch (e) {
+      /* Si no se puede ir a Google, se entra igualmente (la lista se queda en este navegador). */
+      console.warn('No se pudo ir a Google', e);
+      try { sessionStorage.removeItem(CLAVE_ENTRAR_TRAS_GOOGLE); } catch (err) { /* Nada. */ }
+    }
+  }
+  await entrarEnLista();
+});
+
+/* Entra en la lista pendiente con el perfil (nombre y color) y la abre. */
+async function entrarEnLista() {
+  const datos = pendiente && pendiente.lista;
+  try {
+    await almacen.unirse(pendiente.id, perfil);
+    pendiente = null;
+    await enrutar();
+    toast('Ya estás en la lista', { icono: true });
   } catch (e) {
     if (e && e.message === 'lista-llena') return mostrarLlena();
     console.error(e);
+    if (raiz.dataset.vista !== 'nombre' && datos) pedirNombre(datos);
     toast('No se pudo entrar en la lista.');
     el.entrar.disabled = false;
   }
-});
+}
 
 /* ---------- Lista ---------- */
 

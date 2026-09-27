@@ -61,8 +61,12 @@ cosas.info, sin copiar nada. Así:
   instalada comparten lo guardado en ese dominio, así que la lista también aparece en la app. Un
   enlace antiguo de cosas.info lleva al dominio de la app a quien todavía no está en la lista.
 - En iPhone, Safari y la app de la pantalla de inicio guardan sus datos por separado y un enlace
-  nunca abre la app: lo aceptado en Safari solo llega a la app si en los dos se ha entrado con la
-  misma cuenta de Google. En la app, pegar un enlace de invitación en «Añadir cosas con / de» abre
+  nunca abre la app: lo aceptado en Safari solo llega a la app con la cuenta de Google. Por eso, en
+  Safari de iPhone o iPad y sin cuenta todavía, Entrar lleva antes a elegir la cuenta de Google
+  (por redirección) y, a la vuelta, se entra en la lista con ella sin volver a preguntar el nombre
+  (la lista pendiente viaja en `sessionStorage`). Primero la cuenta y luego la lista: al revés, en
+  «Cosas con» la sesión anónima de Safari ocuparía el sitio. En la app hay que haber iniciado sesión
+  con esa misma cuenta (Ajustes → Iniciar sesión). En la app, pegar un enlace de invitación en «Añadir cosas con / de» abre
   esa lista en vez de crear una.
 - Cada dominio guarda su sesión anónima: lo abierto desde la app y lo abierto en cosas.info en el
   navegador son sesiones distintas. **Continuar con Google** en los dos junta las listas.
