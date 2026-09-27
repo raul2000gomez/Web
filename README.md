@@ -25,11 +25,13 @@ index.html            Portada
 con/index.html        Cosas con (/con/ID abre la lista ID)
 de/index.html         Cosas de (/de/ID abre el grupo ID). Misma lógica que /con/: js/con.js lee
                       el tipo de la página en data-tipo. Si cambias algo en una, cámbialo en la otra.
+cuenta/index.html     Tu cuenta: entrar con Google o cerrar sesión (la abre la app desde sus ajustes)
 css/base.css          Colores, tipografía, botones, cabecera y pie (común)
 css/landing.css       Estilos de la portada
 css/con.css           Estilos de Cosas con y Cosas de (los de la app)
 js/landing.js         Animaciones de la portada
 js/con.js             Lógica de Cosas con (vistas, rutas, lista)
+js/cuenta.js          Lógica de Tu cuenta
 js/almacen-firebase.js  Guardado en la nube (Firebase) y cuentas
 js/almacen-local.js     Guardado en el navegador cuando Firebase no está configurado
 js/util.js            Utilidades (paleta, tono, identificadores…)
@@ -57,6 +59,16 @@ cosas.info, sin copiar nada. Así:
 - Cada dominio guarda su sesión anónima: lo abierto desde la app y lo abierto en cosas.info en el
   navegador son sesiones distintas. **Continuar con Google** en los dos junta las listas.
 - En Firebase, `cosas-app.netlify.app` tiene que estar en los dominios autorizados (para Google).
+
+**Iniciar sesión desde la app.** En sus ajustes, «Iniciar sesión» abre `cuenta/?desde=app&accion=entrar`
+(servida también en el dominio de la app), que va directa a Google por redirección y, al volver,
+regresa a los ajustes; «Cerrar sesión» abre `…&accion=salir`. Dentro de la app, `js/almacen-firebase.js`
+usa como `authDomain` el propio dominio de la app, cuyo `netlify.toml` sirve `/__/` desde
+`cosas-info.firebaseapp.com`: así la redirección funciona en la app instalada (también en iPhone).
+Para eso, el cliente OAuth «Web client (auto created by Google Service)» del proyecto, en Google
+Cloud → APIs y servicios → Credenciales, tiene `https://cosas-app.netlify.app/__/auth/handler`
+entre sus URI de redirección. La cuenta con la que se ha entrado queda en `localStorage`
+(`cosascon:cuenta`) para que la app la enseñe.
 
 ## Dónde está publicada
 

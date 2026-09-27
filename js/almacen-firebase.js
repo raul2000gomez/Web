@@ -3,11 +3,14 @@
    todos sus dispositivos, enlaza la cuenta con Google. Las listas se sincronizan en
    tiempo real y funcionan sin conexión gracias a la caché de Firestore. */
 
-import { idNuevo, local, ordenar, esColor, estaLlena } from './util.js';
+import { idNuevo, local, ordenar, esColor, estaLlena, APP_URL } from './util.js';
 
 const VERSION = '12.4.0';
 const CDN = `https://www.gstatic.com/firebasejs/${VERSION}/`;
 const CLAVE_IDS = 'cosascon:ids';
+/* La cuenta de Google con la que se ha entrado ({ nombre, correo }), para que la app la enseñe
+   en sus ajustes (mismo dominio). Sin cuenta, no existe. */
+const CLAVE_CUENTA = 'cosascon:cuenta';
 
 export async function crearAlmacenFirebase(config) {
   const [app, auth, fs] = await Promise.all([
@@ -16,7 +19,11 @@ export async function crearAlmacenFirebase(config) {
     import(`${CDN}firebase-firestore.js`)
   ]);
 
-  const aplicacion = app.initializeApp(config);
+  /* En el dominio de la app, su netlify.toml sirve también /__/ (el ayudante de acceso de
+     Firebase): con authDomain en el mismo dominio, entrar con Google funciona también por
+     redirección, que es lo fiable en la app instalada (sobre todo en iPhone). */
+  const enLaApp = location.origin === new URL(APP_URL).origin;
+  const aplicacion = app.initializeApp(enLaApp ? { ...config, authDomain: location.host } : config);
   const autenticacion = auth.getAuth(aplicacion);
   autenticacion.languageCode = 'es';
 
@@ -94,27 +101,55 @@ export async function crearAlmacenFirebase(config) {
     recordarId(id);
   }
 
+  function recordarCuenta(u) {
+    if (u && !u.isAnonymous) local.guardar(CLAVE_CUENTA, { nombre: u.displayName || '', correo: u.email || '' });
+    else local.borrar(CLAVE_CUENTA);
+  }
+
+  /* Al volver de entrar con Google por redirección, el resultado se recoge aquí, una sola vez. Si
+     ese Google ya tenía cuenta, se entra con ella y se vuelve a unir a las listas que había en este
+     navegador (lo mismo que hace iniciarSesionGoogle con la ventana emergente). */
+  const redireccion = auth.getRedirectResult(autenticacion)
+    .then(r => (r ? usuarioDe(r.user) : null))
+    .catch(async e => {
+      if (!e || (e.code !== 'auth/credential-already-in-use' && e.code !== 'auth/email-already-in-use')) throw e;
+      const idsPrevias = local.leer(CLAVE_IDS, []);
+      const r = await auth.signInWithCredential(autenticacion, auth.GoogleAuthProvider.credentialFromError(e));
+      const perfil = local.leer('cosascon:perfil');
+      if (perfil && perfil.nombre) {
+        for (const id of idsPrevias) {
+          try { await unirse(id, perfil); } catch (err) { /* La lista ya no existe o está llena: se ignora. */ }
+        }
+      }
+      return usuarioDe(r.user);
+    });
+  redireccion.catch(e => console.warn('Redirección de Google', e));
+
   const almacen = {
     modo: 'nube',
 
     iniciar() {
       return new Promise(resolve => {
         let primero = true;
-        auth.onAuthStateChanged(autenticacion, async u => {
+        /* onIdTokenChanged, y no onAuthStateChanged: avisa también cuando la sesión anónima se
+           enlaza con Google (mismo usuario, ya con cuenta). */
+        auth.onIdTokenChanged(autenticacion, async u => {
           if (!u) {
             try { await auth.signInAnonymously(autenticacion); }
             catch (e) { console.error('No se pudo entrar de forma anónima', e); if (primero) { primero = false; resolve(); } }
             return;
           }
           usuarioActual = u;
+          recordarCuenta(u);
           oyentesUsuario.forEach(cb => cb(usuarioDe(u)));
           emitirEstado();
           if (primero) { primero = false; resolve(); }
         });
-        /* Si venimos de un inicio de sesión por redirección, se recoge aquí. */
-        auth.getRedirectResult(autenticacion).catch(e => console.warn('Redirección de Google', e));
       });
     },
+
+    /* Lo que ha dejado una vuelta de Google por redirección: el usuario, o null si no se venía de ahí. */
+    redireccion() { return redireccion; },
 
     usuario() { return usuarioDe(usuarioActual); },
     onUsuario(cb) { oyentesUsuario.add(cb); if (usuarioActual) cb(usuarioDe(usuarioActual)); return () => oyentesUsuario.delete(cb); },
@@ -243,12 +278,18 @@ export async function crearAlmacenFirebase(config) {
     },
 
     /* Enlaza la sesión anónima con Google. Si ese Google ya tenía cuenta, se entra con
-       ella y se vuelve a unir a las listas que tenía la sesión anónima en este navegador. */
-    async iniciarSesionGoogle(perfil) {
+       ella y se vuelve a unir a las listas que tenía la sesión anónima en este navegador.
+       Con porRedireccion, la página se va a Google y vuelve (lo recoge redireccion()). */
+    async iniciarSesionGoogle(perfil, { porRedireccion = false } = {}) {
       const proveedor = new auth.GoogleAuthProvider();
       proveedor.setCustomParameters({ prompt: 'select_account' });
       const actual = autenticacion.currentUser;
       const idsPrevias = local.leer(CLAVE_IDS, []);
+      if (porRedireccion) {
+        if (actual && actual.isAnonymous) await auth.linkWithRedirect(actual, proveedor);
+        else await auth.signInWithRedirect(autenticacion, proveedor);
+        return false;
+      }
       try {
         if (actual && actual.isAnonymous) await auth.linkWithPopup(actual, proveedor);
         else await auth.signInWithPopup(autenticacion, proveedor);
@@ -276,6 +317,7 @@ export async function crearAlmacenFirebase(config) {
     async cerrarSesion() {
       local.borrar(CLAVE_IDS);
       local.borrar('cosascon:perfil');
+      local.borrar(CLAVE_CUENTA);
       await auth.signOut(autenticacion);
       /* onAuthStateChanged vuelve a entrar de forma anónima. */
     }
