@@ -283,6 +283,20 @@ body {
   line-height: 1.5;
 }
 
+/* Invitación abierta en el navegador del móvil: cómo aceptarla desde la app, y el enlace a mano. */
+.en-la-app {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 34ch;
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid var(--filete-l);
+}
+
+.en-la-app .vacio-texto { font-size: 15px; }
+
 /* ---------- Barra de abajo, fija como en la app ---------- */
 
 .barra {

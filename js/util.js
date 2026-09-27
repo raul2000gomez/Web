@@ -126,7 +126,7 @@ export const local = {
 };
 
 export function enlaceDe(id, tipo, base = '') {
-  /* Dentro de la app (su dominio sirve estas páginas, traídas de cosas.info) se comparte el enlace de cosas.info. */
-  const origen = location.origin === new URL(APP_URL).origin ? 'https://cosas.info' : location.origin;
-  return `${origen}${base}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
+  /* El enlace del sitio donde se está: dentro de la app, el de su dominio (que también sirve estas
+     páginas). Así, en Android, quien tiene la app instalada y lo toca la abre a ella, no el navegador. */
+  return `${location.origin}${base}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
 }

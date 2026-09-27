@@ -55,7 +55,14 @@ cosas.info, sin copiar nada. Así:
   enseña la barra al salir del dominio de la app).
 - Leen el **color de fondo** que el usuario eligió en la app (`localStorage` `cosas:v1`) y lo usan en
   Cosas con y en Cosas de. Una lista abierta lleva su propio color. En cosas.info, el azul de la app.
-- Los enlaces que se comparten siguen siendo de `cosas.info` (`enlaceDe` en `js/util.js`).
+- Los enlaces que se comparten son los del sitio donde se está (`enlaceDe` en `js/util.js`): desde
+  la app, los de su dominio, así que en Android quien tiene la app instalada y toca el enlace la
+  abre a ella; desde cosas.info, los de cosas.info.
+- En iPhone un enlace nunca abre la app de la pantalla de inicio (se abre en Safari, que guarda sus
+  datos aparte). Por eso, al abrir una invitación en el navegador del móvil, la pantalla del nombre
+  explica cómo aceptarla desde la app y ofrece «Copiar el enlace»; y en la app, pegar el enlace de
+  una invitación (solo o con el mensaje con el que se compartió) en «Añadir cosas con / de» abre
+  esa lista en vez de crear una.
 - Cada dominio guarda su sesión anónima: lo abierto desde la app y lo abierto en cosas.info en el
   navegador son sesiones distintas. **Continuar con Google** en los dos junta las listas.
 - En Firebase, `cosas-app.netlify.app` tiene que estar en los dominios autorizados (para Google).

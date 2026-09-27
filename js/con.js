@@ -17,6 +17,7 @@ const el = {
   formCrear: $('#form-crear'), anadir: $('#anadir'), prefijoCrear: $('#prefijo-crear'), campoCrear: $('#campo-crear'), confirmarCrear: $('#confirmar-crear'),
   hojaCuenta: $('#hoja-cuenta'), cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
+  notaApp: $('#nota-app'), notaAppTexto: $('#nota-app-texto'), copiarInvitacion: $('#copiar-invitacion'),
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
   tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
@@ -59,6 +60,11 @@ let colorPrevisualizado = null;
 /* El dominio de la app también sirve estas páginas (su netlify.toml las trae de cosas.info): así
    la app instalada las abre como pantallas suyas, sin la barra del navegador. */
 const EN_LA_APP = location.origin === new URL(APP_URL).origin;
+/* Abierta como app (desde la pantalla de inicio), no en una pestaña del navegador. */
+const INSTALADA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+/* iPadOS se presenta como un Mac: lo delata la pantalla táctil. */
+const EN_EL_MOVIL = /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
+  || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
 /* El color de fondo que el usuario eligió en la app, el mismo en Cosas con y en Cosas de (una
    lista abierta lleva el suyo, como un grupo en la app). Dentro de la app se lee de sus datos;
@@ -220,8 +226,31 @@ function cerrarCampo(enfocar = false) {
   if (enfocar) el.anadir.focus({ preventScroll: true });
 }
 
+/* El enlace de una invitación (de cosas.info o de la app, solo o dentro del mensaje con el que se
+   compartió) pegado en «Añadir cosas con / de»: en vez de crear una lista, se abre esa. Es como se
+   acepta desde la app una invitación que se abrió en el navegador (en iPhone, los enlaces nunca
+   abren la app de la pantalla de inicio). */
+function listaDeEnlace(texto) {
+  const m = /https?:\/\/([^/\s?#]+)(?:\/[^\s?#]*)?\/(con|de)\/([A-Za-z0-9]{8,24})\/?(?=[?#\s]|$)/.exec(texto || '');
+  if (!m) return null;
+  const sitios = ['cosas.info', 'www.cosas.info', new URL(APP_URL).host, location.host];
+  const id = m[3].toLowerCase();
+  return sitios.includes(m[1].toLowerCase()) && esId(id) ? { tipo: m[2], id } : null;
+}
+
+function abrirEnlace(enlace) {
+  cerrarCampo();
+  const ruta = `${BASE}/${enlace.tipo}/${enlace.id}`;
+  if (enlace.tipo === tipoPagina) ir(ruta);
+  else location.assign(ruta); // Es de la otra página (Cosas con ↔ Cosas de).
+}
+
 el.anadir.addEventListener('click', abrirCampo);
-el.campoCrear.addEventListener('input', () => { el.confirmarCrear.disabled = !limpiar(el.campoCrear.value, 40); });
+el.campoCrear.addEventListener('input', () => {
+  const enlace = listaDeEnlace(el.campoCrear.value);
+  if (enlace) return abrirEnlace(enlace);
+  el.confirmarCrear.disabled = !limpiar(el.campoCrear.value, 40);
+});
 el.campoCrear.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape') return;
   ev.preventDefault();
@@ -233,6 +262,8 @@ el.campoCrear.addEventListener('blur', () => { if (!limpiar(el.campoCrear.value,
 
 el.formCrear.addEventListener('submit', async ev => {
   ev.preventDefault();
+  const enlace = listaDeEnlace(el.campoCrear.value);
+  if (enlace) return abrirEnlace(enlace);
   const nombre = limpiar(el.campoCrear.value, 40);
   if (!nombre) return;
   pendiente = { accion: 'crear', nombre, tipo: tipoPagina };
@@ -391,6 +422,13 @@ function pedirNombre(datos) {
     ? 'Di cómo te llamas para que en la lista se sepa quién añade cada cosa. Solo lo preguntamos una vez.'
     : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
   document.title = el.tituloNombre.textContent;
+  /* Una invitación abierta en el navegador del móvil: si tiene la app, que la acepte desde ella. */
+  el.notaApp.hidden = creando || INSTALADA || !EN_EL_MOVIL;
+  if (!creando) {
+    const tipo = tipoDe(datos);
+    el.notaAppTexto.textContent = `¿Tienes Cosas en la pantalla de inicio? Para que ${tipo === 'de' ? 'el grupo' : 'la lista'} se quede en la app, `
+      + `acepta desde ella: copia el enlace, abre Cosas, entra en «${TEXTOS[tipo].titulo}» y pégalo en «Añadir ${TEXTOS[tipo].titulo.toLowerCase()}».`;
+  }
   el.campoNombre.value = perfil && perfil.nombre ? perfil.nombre : (usuario && usuario.nombre ? usuario.nombre.split(' ')[0] : '');
   el.entrar.disabled = !limpiar(el.campoNombre.value, 40);
   el.campoNombre.focus();
@@ -656,6 +694,9 @@ async function copiar(texto) {
 }
 
 el.invitar.addEventListener('click', invitar);
+el.copiarInvitacion.addEventListener('click', () => {
+  if (pendiente && pendiente.accion === 'unirse') copiar(enlaceDe(pendiente.id, tipoDe(pendiente.lista), BASE));
+});
 el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista), BASE)));
 
 /* ---------- Ajustes de la lista (hoja) ---------- */
