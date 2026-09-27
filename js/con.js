@@ -3,7 +3,7 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, APP_URL, tono, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos, local } from './util.js';
+import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos } from './util.js';
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -12,16 +12,15 @@ const menosMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').ma
 
 const el = {
   app: $('#app'),
-  estado: $('#estado'), estadoTexto: $('#estado-texto'), volverInicio: $('#volver-inicio'),
-  formCrear: $('#form-crear'), campoCon: $('#campo-con'), medidor: $('#medidor'), crear: $('#crear'), crearTexto: $('#crear-texto'),
-  tituloFijo: $('#titulo-fijo'), inicioAyuda: $('#inicio-ayuda'), cruce: $('#cruce'), tituloMias: $('#titulo-mis-listas'),
-  bloqueMias: $('#bloque-mis-listas'), misListas: $('#mis-listas'),
-  cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
+  volverInicio: $('#volver-inicio'), tituloInicio: $('#titulo-inicio'), abrirCuenta: $('#abrir-cuenta'),
+  misListas: $('#mis-listas'), vacioInicio: $('#vacio-inicio'),
+  formCrear: $('#form-crear'), anadir: $('#anadir'), prefijoCrear: $('#prefijo-crear'), campoCrear: $('#campo-crear'), confirmarCrear: $('#confirmar-crear'),
+  hojaCuenta: $('#hoja-cuenta'), cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
-  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), soloDos: $('#solo-dos'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
+  tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
-  hoja: $('#hoja'), hojaVelo: $('#hoja-velo'), cerrarHoja: $('#cerrar-hoja'), formAjustes: $('#form-ajustes'),
+  hoja: $('#hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
   ajusteTipo: $('#ajuste-tipo'), ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
@@ -30,6 +29,7 @@ const el = {
 };
 
 const ICONO_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>';
+const ICONO_FLECHA = '<svg class="flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.5 15.5 12 9 18.5"/></svg>';
 const ICONO_BORRAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5"/></svg>';
 
 let almacen = null;
@@ -43,22 +43,11 @@ const tipoPagina = el.app.dataset.tipo === 'de' ? 'de' : 'con';
 /* La base de la web: vacía en cosas.info; «/Web» si se sirve desde una subcarpeta (GitHub Pages). */
 const BASE = (location.pathname.match(/^(.*?)\/(con|de)(?:\/[^/]*)?\/?$/) || ['', ''])[1];
 const RUTA_INICIO = `${BASE}/${tipoPagina}/`;
-const otroTipo = tipoPagina === 'de' ? 'con' : 'de';
 
-/* Textos que cambian según el tipo. */
+/* Textos que cambian según el tipo (los de la página ya vienen en su HTML). */
 const TEXTOS = {
-  con: {
-    titulo: 'Cosas con', ejemplo: 'Raúl', boton: 'Crear la lista',
-    ayuda: 'Para dos personas: tú y otra. Escribe con quién, crea la lista y pásale el enlace. Lo que tú añadas lo verá al momento, y tú lo suyo. Nadie más puede entrar.',
-    creada: 'Lista creada. Pásale el enlace a la otra persona.', etiqueta: '¿Con quién es la lista?',
-    mias: 'Tus listas', otras: n => n === 1 ? 'Tienes 1 lista en Cosas con' : `Tienes ${n} listas en Cosas con`, ir: 'Ir a Cosas con'
-  },
-  de: {
-    titulo: 'Cosas de', ejemplo: 'trabajo', boton: 'Crear el grupo',
-    ayuda: 'Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje», «Cosas de la boda». Comparte el enlace con quien quieras y todos ven y añaden las cosas de ese tema.',
-    creada: 'Grupo creado. Comparte el enlace con la gente.', etiqueta: '¿De qué va el grupo?',
-    mias: 'Tus grupos', otras: n => n === 1 ? 'Tienes 1 grupo en Cosas de' : `Tienes ${n} grupos en Cosas de`, ir: 'Ir a Cosas de'
-  }
+  con: { titulo: 'Cosas con', ejemplo: 'Raúl', creada: 'Lista creada. Pásale el enlace a la otra persona.' },
+  de: { titulo: 'Cosas de', ejemplo: 'trabajo', creada: 'Grupo creado. Comparte el enlace con la gente.' }
 };
 let listaId = null;
 let lista = null;
@@ -179,107 +168,144 @@ function mostrarLlena() {
 function mostrarInicio() {
   document.title = tipoPagina === 'de' ? 'Cosas de · grupos por tema' : 'Cosas con · listas compartidas';
   mostrar('inicio');
-  elegirTipo(tipoPagina);
-  medir();
+  cerrarCampo();
   escucharMias();
   pintarCuenta();
-  if (window.matchMedia('(pointer: fine)').matches) el.campoCon.focus();
 }
-
-function medir() {
-  el.medidor.textContent = el.campoCon.value || el.campoCon.placeholder;
-  el.crear.disabled = !limpiar(el.campoCon.value, 40);
-}
-
-el.campoCon.addEventListener('input', medir);
 
 /* Pinta un conmutador y devuelve el tipo marcado. */
 function marcarConmutador(conmutador, tipo) {
   conmutador.querySelectorAll('.conmutador-opcion').forEach(b => b.setAttribute('aria-checked', b.dataset.tipo === tipo ? 'true' : 'false'));
 }
 
-function elegirTipo(tipo) {
-  const t = TEXTOS[tipo];
-  el.tituloFijo.textContent = t.titulo;
-  el.campoCon.placeholder = t.ejemplo;
-  el.campoCon.setAttribute('aria-label', t.etiqueta);
-  el.campoCon.setAttribute('autocapitalize', tipo === 'con' ? 'words' : 'sentences');
-  el.inicioAyuda.textContent = t.ayuda;
-  el.crearTexto.textContent = t.boton;
-  el.tituloMias.textContent = t.mias;
-  medir();
+/* ---------- Barra «Añadir cosas con / de» ----------
+   Como «Crear grupo de cosas» en la app: en reposo la píldora es un botón; al pulsarlo pasa a
+   «Cosas con ___» con «Crear» al final. Escape, o salir del campo sin escribir, la devuelve. */
+
+let editando = false;
+let ultimaCreacion = -Infinity;
+const GUARDA_DOBLE_TOQUE = 400;
+
+function abrirCampo() {
+  /* El botón acaba de reaparecer bajo el dedo tras crear: ese toque era el segundo de un doble toque. */
+  if (editando || performance.now() - ultimaCreacion < GUARDA_DOBLE_TOQUE) return;
+  editando = true;
+  el.formCrear.classList.add('editando');
+  el.anadir.hidden = true;
+  el.prefijoCrear.hidden = false;
+  el.campoCrear.hidden = false;
+  el.confirmarCrear.hidden = false;
+  el.confirmarCrear.disabled = !limpiar(el.campoCrear.value, 40);
+  el.campoCrear.focus({ preventScroll: true });
 }
+
+function cerrarCampo(enfocar = false) {
+  if (!editando) return;
+  editando = false;
+  el.campoCrear.value = '';
+  el.formCrear.classList.remove('editando');
+  el.prefijoCrear.hidden = true;
+  el.campoCrear.hidden = true;
+  el.confirmarCrear.hidden = true;
+  el.confirmarCrear.disabled = true;
+  el.anadir.hidden = false;
+  if (enfocar) el.anadir.focus({ preventScroll: true });
+}
+
+el.anadir.addEventListener('click', abrirCampo);
+el.campoCrear.addEventListener('input', () => { el.confirmarCrear.disabled = !limpiar(el.campoCrear.value, 40); });
+el.campoCrear.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  cerrarCampo(true);
+});
+/* Salir del campo sin haber escrito nada es cancelar (el toque en «Crear» llega antes que esto). */
+el.campoCrear.addEventListener('blur', () => { if (!limpiar(el.campoCrear.value, 40)) cerrarCampo(); });
 
 el.formCrear.addEventListener('submit', async ev => {
   ev.preventDefault();
-  const nombre = limpiar(el.campoCon.value, 40);
+  const nombre = limpiar(el.campoCrear.value, 40);
   if (!nombre) return;
   pendiente = { accion: 'crear', nombre, tipo: tipoPagina };
+  ultimaCreacion = performance.now();
+  cerrarCampo();
   if (!perfil || !perfil.nombre) return pedirNombre(null);
   await crearLista(nombre, tipoPagina);
 });
 
 async function crearLista(nombre, tipo) {
-  el.crear.disabled = true;
   try {
     const id = await almacen.crearLista({ nombre, tipo, color: colorAleatorio(), perfil });
     pendiente = null;
-    el.campoCon.value = '';
     history.pushState({}, '', `${BASE}/${tipo === 'de' ? 'de' : 'con'}/${id}`);
     await enrutar();
     toast(TEXTOS[tipo === 'de' ? 'de' : 'con'].creada, { icono: true, duracion: 4200 });
   } catch (e) {
     console.error(e);
     toast('No se pudo crear la lista. Inténtalo otra vez.');
-    el.crear.disabled = false;
+    el.entrar.disabled = false;
   }
+}
+
+/* ---------- Tus conexiones ----------
+   Cada apartado enseña las suyas, como filas de la app: un disco con color e inicial (en una
+   lista «con» de dos, los de la otra persona), el nombre y, si hace falta, una línea más. */
+
+const pintadas = new Set();
+
+function datosFila(l) {
+  const uids = l.uids || [];
+  const miembros = l.miembros || {};
+  if (tipoDe(l) === 'con') {
+    const otroUid = uids.find(u => u !== usuario.uid);
+    const otro = otroUid ? miembros[otroUid] : null;
+    const nombre = limpiar((otro && otro.nombre) || l.nombre, 40) || '…';
+    return { nombre, color: (otro && otro.color) || l.color, detalle: otroUid ? '' : 'Todavía no ha entrado' };
+  }
+  const n = uids.length;
+  return { nombre: limpiar(l.nombre, 40) || '…', color: l.color, detalle: n <= 1 ? 'Solo tú, de momento' : `${n} personas` };
 }
 
 function escucharMias() {
   if (pararMias) { pararMias(); pararMias = null; }
   pararMias = almacen.escucharMisListas(todas => {
-    /* Cada apartado enseña las suyas; de las del otro, solo cuántas hay, con su enlace. */
     const listas = todas.filter(l => tipoDe(l) === tipoPagina);
-    const otras = todas.length - listas.length;
-    pintarCruce(otras);
-    el.bloqueMias.hidden = !listas.length;
+    el.vacioInicio.hidden = listas.length > 0;
     el.misListas.innerHTML = '';
     listas.forEach(l => {
+      const { nombre, color, detalle } = datosFila(l);
+      const fondo = esColor(color) ? color : '#F1F3F5';
       const li = document.createElement('li');
+      li.className = 'conexion';
+      if (pintadas.size && !pintadas.has(l.id)) li.classList.add('nueva');
       const a = document.createElement('a');
-      a.className = 'mi-lista';
+      a.className = 'enlace-conexion';
       a.href = `${BASE}/${tipoDe(l)}/${l.id}`;
-      const miembros = Object.entries(l.miembros || {});
-      const otros = miembros.filter(([u, m]) => u !== usuario.uid && m && m.nombre).map(([, m]) => m.nombre);
-      let detalle;
-      if (miembros.length <= 1) detalle = 'Solo tú, de momento';
-      else if (miembros.length === 2) detalle = `Tú y ${otros[0] || 'otra persona'}`;
-      else detalle = `${miembros.length} personas`;
-      a.innerHTML = `<span class="mi-lista-color" style="--color:${l.color || '#2F6FED'}"></span><span class="mi-lista-texto"><span class="mi-lista-nombre"></span><span class="mi-lista-detalle"></span></span>`;
-      a.querySelector('.mi-lista-nombre').textContent = tituloDe(l, usuario.uid);
-      a.querySelector('.mi-lista-detalle').textContent = detalle;
-      a.addEventListener('click', ev => { ev.preventDefault(); ir(a.getAttribute('href')); });
+      a.innerHTML = `<span class="disco" aria-hidden="true"></span><span class="conexion-texto"><span class="conexion-nombre"></span><span class="conexion-detalle"></span></span>${ICONO_FLECHA}`;
+      const disco = a.querySelector('.disco');
+      disco.textContent = inicial(nombre);
+      disco.style.setProperty('--disco', fondo);
+      disco.style.setProperty('--disco-tinta', tono(fondo) === 'oscuro' ? '#FFFFFF' : '#0A0A0A');
+      a.querySelector('.conexion-nombre').textContent = nombre;
+      const det = a.querySelector('.conexion-detalle');
+      det.textContent = detalle;
+      det.hidden = !detalle;
+      a.setAttribute('aria-label', detalle ? `${tituloDe(l, usuario.uid)}. ${detalle}` : tituloDe(l, usuario.uid));
+      a.addEventListener('click', ev => {
+        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+        ev.preventDefault();
+        ir(a.getAttribute('href'));
+      });
       li.appendChild(a);
       el.misListas.appendChild(li);
     });
+    pintadas.clear();
+    listas.forEach(l => pintadas.add(l.id));
   });
 }
 
-function pintarCruce(otras) {
-  const t = TEXTOS[otroTipo];
-  el.cruce.innerHTML = '';
-  if (otras > 0) {
-    el.cruce.append(t.otras(otras) + '. ');
-  } else {
-    el.cruce.append(otroTipo === 'de'
-      ? '¿Sois más de dos, o es un tema como «Cosas de viaje»? '
-      : '¿Una lista solo entre dos, como «Cosas con Raúl»? ');
-  }
-  const a = document.createElement('a');
-  a.href = `${BASE}/${otroTipo}/`;
-  a.innerHTML = `${t.ir} <span aria-hidden="true">→</span>`;
-  el.cruce.appendChild(a);
-}
+/* ---------- Tu cuenta (hoja) ---------- */
 
 function pintarCuenta() {
   if (!almacen) return;
@@ -458,9 +484,7 @@ function pintarLista(l) {
 
   el.borrarLista.hidden = l.creadaPor !== usuario.uid;
   /* Con las dos personas dentro, «Cosas con» ya no admite a nadie: sin invitar. */
-  const deDos = esDeDos(l);
-  el.invitar.hidden = deDos;
-  el.soloDos.hidden = !deDos;
+  el.invitar.hidden = esDeDos(l);
   /* Las cosas llevan el avatar de quien las añadió: si cambia un nombre o color, se repintan. */
   filas.forEach((li, cid) => { const c = cosasActuales.get(cid); if (c) actualizarFila(li, c); });
 }
@@ -583,6 +607,17 @@ el.formCosa.addEventListener('submit', async ev => {
 });
 
 el.volver.addEventListener('click', ev => { ev.preventDefault(); ir(RUTA_INICIO); });
+/* Las flechas de «nombre», «llena» y «no existe» también vuelven a tus listas. */
+document.querySelectorAll('[data-volver]').forEach(a => a.addEventListener('click', ev => {
+  ev.preventDefault();
+  pendiente = null;
+  ir(RUTA_INICIO);
+}));
+/* «Añadir cosas con» fuera del inicio: lleva al inicio con el campo ya abierto. */
+document.querySelectorAll('[data-crear]').forEach(b => b.addEventListener('click', () => {
+  ir(RUTA_INICIO);
+  abrirCampo();
+}));
 
 /* ---------- Invitar ---------- */
 
@@ -657,24 +692,36 @@ function abrirHoja() {
     code.textContent = enlaceDe(listaId, tipoDe(lista), BASE);
     el.hojaNota.append('Cualquiera con el enlace puede entrar en la lista: ', code);
   }
-  el.hoja.classList.add('abierta');
-  el.hoja.setAttribute('aria-hidden', 'false');
-  el.app.setAttribute('inert', '');
-  $('#titulo-hoja').focus();
+  abrirPanel(el.hoja, '#titulo-hoja');
 }
 
+function abrirCuenta() {
+  pintarCuenta();
+  abrirPanel(el.hojaCuenta, '#titulo-cuenta');
+}
+
+function abrirPanel(hoja, titulo) {
+  hoja.classList.add('abierta');
+  hoja.setAttribute('aria-hidden', 'false');
+  el.app.setAttribute('inert', '');
+  $(titulo).focus();
+}
+
+/* Cierra la hoja que esté abierta (ajustes de la lista o tu cuenta). */
 function cerrarHoja() {
-  if (!el.hoja.classList.contains('abierta')) return;
-  el.hoja.classList.remove('abierta');
-  el.hoja.setAttribute('aria-hidden', 'true');
+  const abierta = document.querySelector('.hoja.abierta');
+  if (!abierta) return;
+  abierta.classList.remove('abierta');
+  abierta.setAttribute('aria-hidden', 'true');
   el.app.removeAttribute('inert');
   if (colorPrevisualizado && lista) { colorPrevisualizado = null; pintarColor(lista.color || '#2F6FED'); }
   colorPrevisualizado = null;
+  if (abierta === el.hojaCuenta) el.abrirCuenta.focus({ preventScroll: true });
 }
 
 el.abrirAjustes.addEventListener('click', abrirHoja);
-el.cerrarHoja.addEventListener('click', cerrarHoja);
-el.hojaVelo.addEventListener('click', cerrarHoja);
+el.abrirCuenta.addEventListener('click', abrirCuenta);
+document.querySelectorAll('[data-cerrar-hoja]').forEach(b => b.addEventListener('click', cerrarHoja));
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja(); });
 
 el.ajusteTipo.addEventListener('click', ev => {
@@ -766,11 +813,12 @@ el.borrarLista.addEventListener('click', () => confirmarDosVeces(el.borrarLista,
 
 const TEXTO_ESTADO = { conectando: 'Conectando…', sincronizado: 'Al día', guardando: 'Guardando…', 'sin-conexion': 'Sin conexión', local: 'Modo local' };
 
+/* El estado sale bajo el título del inicio y junto a los miembros de una lista abierta. */
 function pintarEstado(estado) {
-  el.estado.dataset.estado = estado;
-  el.estadoTexto.textContent = TEXTO_ESTADO[estado] || estado;
-  const enLista = $('#estado-lista');
-  if (enLista) { enLista.dataset.estado = estado; enLista.lastElementChild.textContent = TEXTO_ESTADO[estado] || estado; }
+  document.querySelectorAll('.estado').forEach(e => {
+    e.dataset.estado = estado;
+    e.querySelector('.estado-texto').textContent = TEXTO_ESTADO[estado] || estado;
+  });
 }
 
 /* ---------- Aviso (toast) ---------- */
@@ -802,13 +850,14 @@ function ocultarToast() {
   toastTemporizador = setTimeout(() => { if (!el.toast.classList.contains('visible')) el.toast.innerHTML = ''; }, 250);
 }
 
-/* ---------- Teclado en iOS: la barra sigue a la ventana visual ---------- */
+/* ---------- Teclado en iOS: las barras siguen a la ventana visual ---------- */
 
 if (window.visualViewport) {
+  const barras = document.querySelectorAll('.barra');
   const ajustar = () => {
     const vv = window.visualViewport;
     const teclado = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-    el.formCosa.style.transform = teclado > 0 ? `translateY(-${teclado}px)` : '';
+    barras.forEach(b => { b.style.transform = teclado > 0 ? `translateY(-${teclado}px)` : ''; });
   };
   window.visualViewport.addEventListener('resize', ajustar);
   window.visualViewport.addEventListener('scroll', ajustar);

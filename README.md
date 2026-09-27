@@ -11,6 +11,11 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.info/con/…` o
 `cosas.info/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
 
+Tienen el aspecto de la app, como su pantalla de lista: fondo de color, flecha y título arriba, tus
+conexiones como filas en píldora y, abajo, un botón **Añadir cosas con** (o **Añadir cosas de**) que
+se convierte en «Cosas con ___» con «Crear» al final. El botón redondo de arriba a la derecha abre
+tu cuenta (entrar con Google) y el paso al otro apartado.
+
 Es una web estática: HTML, CSS y JavaScript sin frameworks ni compilación. Se sube tal cual.
 
 ## Archivos
@@ -22,7 +27,7 @@ de/index.html         Cosas de (/de/ID abre el grupo ID). Misma lógica que /con
                       el tipo de la página en data-tipo. Si cambias algo en una, cámbialo en la otra.
 css/base.css          Colores, tipografía, botones, cabecera y pie (común)
 css/landing.css       Estilos de la portada
-css/con.css           Estilos de Cosas con
+css/con.css           Estilos de Cosas con y Cosas de (los de la app)
 js/landing.js         Animaciones de la portada
 js/con.js             Lógica de Cosas con (vistas, rutas, lista)
 js/almacen-firebase.js  Guardado en la nube (Firebase) y cuentas
@@ -104,8 +109,8 @@ entrar con Google para tener sus listas en el móvil y en el ordenador.
    };
    ```
 
-8. Guarda, sube el cambio y Netlify vuelve a publicar. En `/con/` el indicador de arriba a la
-   derecha pasa de «Modo local» a «Al día».
+8. Guarda, sube el cambio y Netlify vuelve a publicar. En `/con/` el indicador bajo el título
+   pasa de «Modo local» a «Al día».
 
 Estos datos no son secretos: van en el navegador de cualquier visitante. Lo que protege las
 listas son las reglas de `firestore.rules`.
@@ -138,3 +143,9 @@ npx serve --single .        # o: npx http-server .
 
 Y abre `http://localhost:3000`. (Con `serve --single`, las rutas desconocidas caen en `index.html`;
 para probar `/con/ID` en local, usa `?l=ID`: `http://localhost:3000/con/?l=ID`.)
+
+**En Windows**, `con` es un nombre reservado del sistema: Git no puede sacar a disco `con/index.html`,
+`css/con.css` ni `js/con.js`. Clona con un checkout parcial que los deje fuera
+(`git sparse-checkout set --no-cone '/*' '!/con/' '!/css/con.css' '!/js/con.js'`) y edítalos con
+otro nombre fuera del repositorio; para subirlos, `git hash-object -w` y
+`git update-index --cacheinfo` los meten en su ruta de verdad. O trabaja en WSL, Mac o Linux.
