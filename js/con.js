@@ -56,13 +56,30 @@ const filas = new Map();       // id -> <li>
 let pararLista = null, pararCosas = null, pararMias = null;
 let colorPrevisualizado = null;
 
+/* El dominio de la app también sirve estas páginas (su netlify.toml las trae de cosas.info): así
+   la app instalada las abre como pantallas suyas, sin la barra del navegador. */
+const EN_LA_APP = location.origin === new URL(APP_URL).origin;
+
+/* El color de fondo que el usuario eligió en la app, el mismo en Cosas con y en Cosas de (una
+   lista abierta lleva el suyo, como un grupo en la app). Dentro de la app se lee de sus datos;
+   en cosas.info no se puede y queda el azul de la app. El <head> ya lo pinta antes de cargar. */
+function fondoDeLaApp() {
+  try {
+    const datos = JSON.parse(localStorage.getItem('cosas:v1') || 'null');
+    const color = datos && datos.ajustes && datos.ajustes.colorFondo;
+    return esColor(color) ? color : null;
+  } catch (e) { return null; }
+}
+const FONDO = fondoDeLaApp() || '#2F6FED';
+
 /* ---------- La flecha de arriba a la izquierda ----------
-   Si se ha entrado desde la app (sus accesos abren ?desde=app, o el navegador dice que se
-   viene de ella), la flecha vuelve a la pantalla de inicio de la app. Se recuerda durante
-   la sesión, porque al abrir una lista la dirección cambia. Si no, vuelve a la portada. */
+   Si se ha entrado desde la app (sus accesos abren ?desde=app, el navegador dice que se viene
+   de ella o la página está en su dominio), la flecha vuelve a la pantalla de inicio de la app.
+   Se recuerda durante la sesión, porque al abrir una lista la dirección cambia. Si no, vuelve a
+   la portada. */
 
 function prepararVuelta() {
-  let desdeApp = new URLSearchParams(location.search).get('desde') === 'app'
+  let desdeApp = EN_LA_APP || new URLSearchParams(location.search).get('desde') === 'app'
     || (document.referrer && document.referrer.indexOf(APP_URL) === 0);
   try {
     if (desdeApp) sessionStorage.setItem('cosascon:desde-app', '1');
@@ -126,11 +143,7 @@ function ir(ruta) {
 function mostrar(nombre) {
   document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.dataset.vista === nombre));
   raiz.dataset.vista = nombre;
-  if (nombre !== 'lista') {
-    raiz.style.removeProperty('--fondo');
-    raiz.removeAttribute('data-tono');
-    pintarTema(null);
-  }
+  if (nombre !== 'lista') pintarColor(FONDO);
   window.scrollTo(0, 0);
 }
 
@@ -446,11 +459,9 @@ function cerrarLista() {
   colorPrevisualizado = null;
 }
 
+/* La barra de estado del móvil, del color de la página. */
 function pintarTema(color) {
-  el.temaMeta.forEach(m => {
-    if (color) { if (!m.dataset.original) m.dataset.original = m.content; m.content = color; }
-    else if (m.dataset.original) m.content = m.dataset.original;
-  });
+  el.temaMeta.forEach(m => { m.content = color; });
 }
 
 function pintarColor(color) {

@@ -43,8 +43,20 @@ icons/                Favicon, icono de iOS e imagen para redes
 
 La pantalla de inicio de la app (repositorio `raul2000gomez/cosas`) lleva dos píldoras, **Cosas con**
 y **Cosas de**, que abren cada apartado con `?desde=app`; con eso, la flecha de arriba a la izquierda
-de estas páginas vuelve a la app. Los enlaces de la app apuntan a `cosas.info`: publica esta web en ese
-dominio (o cambia el dominio en `app/index.html` de la app) antes de publicar la app con los accesos.
+de estas páginas vuelve a la app.
+
+La app no manda a `cosas.info`, sino a su propio dominio: su `netlify.toml` sirve en
+`cosas-app.netlify.app/con/` y `/de/` (y sus `css/`, `js/` y `firebase-config.js`) lo que hay en
+cosas.info, sin copiar nada. Así:
+
+- La app instalada las abre como pantallas suyas, **sin la barra del navegador** (un móvil siempre
+  enseña la barra al salir del dominio de la app).
+- Leen el **color de fondo** que el usuario eligió en la app (`localStorage` `cosas:v1`) y lo usan en
+  Cosas con y en Cosas de. Una lista abierta lleva su propio color. En cosas.info, el azul de la app.
+- Los enlaces que se comparten siguen siendo de `cosas.info` (`enlaceDe` en `js/util.js`).
+- Cada dominio guarda su sesión anónima: lo abierto desde la app y lo abierto en cosas.info en el
+  navegador son sesiones distintas. **Continuar con Google** en los dos junta las listas.
+- En Firebase, `cosas-app.netlify.app` tiene que estar en los dominios autorizados (para Google).
 
 ## Dónde está publicada
 
