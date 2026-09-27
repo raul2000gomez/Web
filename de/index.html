@@ -14,7 +14,9 @@
   <link rel="icon" href="../icons/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
   <link rel="stylesheet" href="../css/base.css">
-  <link rel="stylesheet" href="../css/con.css">
+  <!-- GitHub Pages guarda CSS y JS en caché 10 minutos: al cambiar con.css o con.js, sube el ?v=
+       (aquí y en con/index.html) para que nadie mezcle una página nueva con archivos viejos. -->
+  <link rel="stylesheet" href="../css/con.css?v=2">
 </head>
 <body>
 
@@ -199,6 +201,6 @@
 
   <!-- La misma lógica que /con/: la página declara su tipo en data-tipo. -->
   <script src="../firebase-config.js"></script>
-  <script type="module" src="../js/con.js"></script>
+  <script type="module" src="../js/con.js?v=2"></script>
 </body>
 </html>
