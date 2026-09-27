@@ -36,7 +36,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <!-- GitHub Pages guarda CSS y JS en caché 10 minutos: al cambiar con.css o con.js, sube el ?v=
        (aquí y en con/index.html) para que nadie mezcle una página nueva con archivos viejos. -->
-  <link rel="stylesheet" href="../css/con.css?v=4">
+  <link rel="stylesheet" href="../css/con.css?v=5">
 </head>
 <body>
 
@@ -61,7 +61,7 @@
       <ul class="lista" id="mis-listas" role="list" aria-label="Tus grupos"></ul>
       <div class="vacio-centrado" id="vacio-inicio" hidden>
         <p class="vacio-titulo">Todavía no tienes grupos.</p>
-        <p class="vacio-texto">Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje». Pulsa «Añadir cosas de», escribe el tema y comparte el enlace con quien quieras. ¿Te han invitado? Pega ahí el enlace.</p>
+        <p class="vacio-texto">Un grupo de gente alrededor de un tema: «Cosas de trabajo», «Cosas de viaje». Pulsa «Añadir cosas de», escribe el tema y comparte el enlace con quien quieras.</p>
       </div>
       <!-- La misma píldora que «Crear grupo de cosas» en la app: en reposo es un botón; al pulsarlo
            se convierte en «Cosas de ___» con «Crear» al final. -->
@@ -69,7 +69,7 @@
         <div class="pildora">
           <button type="button" class="boton-pildora" id="anadir">Añadir cosas de</button>
           <span class="prefijo" id="prefijo-crear" aria-hidden="true" hidden>Cosas de</span>
-          <input class="campo" id="campo-crear" type="text" name="de" placeholder="trabajo" maxlength="300" autocomplete="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done" aria-label="¿De qué va el grupo? (o pega el enlace de una invitación)" hidden>
+          <input class="campo" id="campo-crear" type="text" name="de" placeholder="trabajo" maxlength="300" autocomplete="off" autocapitalize="sentences" spellcheck="false" enterkeyhint="done" aria-label="¿De qué va el grupo?" hidden>
           <button type="submit" class="confirmar" id="confirmar-crear" disabled hidden>Crear</button>
         </div>
       </form>
@@ -85,12 +85,6 @@
       <div class="vacio-centrado">
         <p class="vacio-ante" id="nombre-antetitulo">Te han invitado</p>
         <p class="vacio-texto" id="nombre-ayuda">Di cómo te llamas para que se sepa quién añade cada cosa.</p>
-        <!-- En el navegador del móvil: si tiene la app en la pantalla de inicio, la invitación tiene que
-             aceptarse desde ella (iPhone nunca abre la app desde un enlace). con.js la enseña y pone el texto. -->
-        <div class="en-la-app" id="nota-app" hidden>
-          <p class="vacio-texto" id="nota-app-texto"></p>
-          <button type="button" class="boton-ancho" id="copiar-invitacion">Copiar el enlace</button>
-        </div>
       </div>
       <form class="barra barra-accion editando" id="form-nombre" autocomplete="off" novalidate>
         <div class="pildora">
@@ -222,6 +216,6 @@
 
   <!-- La misma lógica que /con/: la página declara su tipo en data-tipo. -->
   <script src="../firebase-config.js"></script>
-  <script type="module" src="../js/con.js?v=5"></script>
+  <script type="module" src="../js/con.js?v=6"></script>
 </body>
 </html>

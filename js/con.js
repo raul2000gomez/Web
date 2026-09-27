@@ -3,7 +3,7 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, estaLlena, esDeDos } from './util.js';
+import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
 import { crearAlmacenLocal } from './almacen-local.js';
 
 const $ = s => document.querySelector(s);
@@ -17,7 +17,6 @@ const el = {
   formCrear: $('#form-crear'), anadir: $('#anadir'), prefijoCrear: $('#prefijo-crear'), campoCrear: $('#campo-crear'), confirmarCrear: $('#confirmar-crear'),
   hojaCuenta: $('#hoja-cuenta'), cuentaTexto: $('#cuenta-texto'), entrarGoogle: $('#entrar-google'), salirCuenta: $('#salir-cuenta'), avisoLocal: $('#aviso-local'),
   nombreAntetitulo: $('#nombre-antetitulo'), tituloNombre: $('#titulo-nombre'), nombreAyuda: $('#nombre-ayuda'),
-  notaApp: $('#nota-app'), notaAppTexto: $('#nota-app-texto'), copiarInvitacion: $('#copiar-invitacion'),
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
   tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
@@ -60,11 +59,6 @@ let colorPrevisualizado = null;
 /* El dominio de la app también sirve estas páginas (su netlify.toml las trae de cosas.info): así
    la app instalada las abre como pantallas suyas, sin la barra del navegador. */
 const EN_LA_APP = location.origin === new URL(APP_URL).origin;
-/* Abierta como app (desde la pantalla de inicio), no en una pestaña del navegador. */
-const INSTALADA = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-/* iPadOS se presenta como un Mac: lo delata la pantalla táctil. */
-const EN_EL_MOVIL = /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
-  || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
 /* El color de fondo que el usuario eligió en la app, el mismo en Cosas con y en Cosas de (una
    lista abierta lleva el suyo, como un grupo en la app). Dentro de la app se lee de sus datos;
@@ -168,6 +162,10 @@ async function enrutar() {
   if (!datos) { document.title = TEXTOS[tipoPagina].titulo; return mostrar('no-existe'); }
 
   if (!(datos.uids || []).includes(usuario.uid)) {
+    /* Las invitaciones se aceptan en el dominio de la app (ahí está la app instalada, y en Android el
+       navegador comparte con ella lo guardado): un enlace antiguo de cosas.info lleva allí a quien
+       todavía no está en la lista, antes de preguntarle el nombre. */
+    if (enProduccion() && !EN_LA_APP) return location.replace(new URL(`${tipoDe(datos)}/${id}`, APP_URL).href);
     /* «Cosas con» es solo para dos: si ya están, la tercera persona no entra. */
     if (estaLlena(datos, usuario.uid)) return mostrarLlena();
     pendiente = { accion: 'unirse', id, lista: datos };
@@ -422,13 +420,6 @@ function pedirNombre(datos) {
     ? 'Di cómo te llamas para que en la lista se sepa quién añade cada cosa. Solo lo preguntamos una vez.'
     : 'Di cómo te llamas para que se sepa quién añade cada cosa.';
   document.title = el.tituloNombre.textContent;
-  /* Una invitación abierta en el navegador del móvil: si tiene la app, que la acepte desde ella. */
-  el.notaApp.hidden = creando || INSTALADA || !EN_EL_MOVIL;
-  if (!creando) {
-    const tipo = tipoDe(datos);
-    el.notaAppTexto.textContent = `¿Tienes Cosas en la pantalla de inicio? Para que ${tipo === 'de' ? 'el grupo' : 'la lista'} se quede en la app, `
-      + `acepta desde ella: copia el enlace, abre Cosas, entra en «${TEXTOS[tipo].titulo}» y pégalo en «Añadir ${TEXTOS[tipo].titulo.toLowerCase()}».`;
-  }
   el.campoNombre.value = perfil && perfil.nombre ? perfil.nombre : (usuario && usuario.nombre ? usuario.nombre.split(' ')[0] : '');
   el.entrar.disabled = !limpiar(el.campoNombre.value, 40);
   el.campoNombre.focus();
@@ -694,9 +685,6 @@ async function copiar(texto) {
 }
 
 el.invitar.addEventListener('click', invitar);
-el.copiarInvitacion.addEventListener('click', () => {
-  if (pendiente && pendiente.accion === 'unirse') copiar(enlaceDe(pendiente.id, tipoDe(pendiente.lista), BASE));
-});
 el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(lista), BASE)));
 
 /* ---------- Ajustes de la lista (hoja) ---------- */

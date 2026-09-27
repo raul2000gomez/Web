@@ -125,8 +125,16 @@ export const local = {
   }
 };
 
+/* cosas.info o la app publicada (no una prueba en local). */
+export function enProduccion() {
+  return /(^|\.)cosas\.info$/.test(location.hostname) || location.origin === new URL(APP_URL).origin;
+}
+
 export function enlaceDe(id, tipo, base = '') {
-  /* El enlace del sitio donde se está: dentro de la app, el de su dominio (que también sirve estas
-     páginas). Así, en Android, quien tiene la app instalada y lo toca la abre a ella, no el navegador. */
-  return `${location.origin}${base}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
+  /* Las invitaciones van siempre al dominio de la app, que también sirve estas páginas: es donde se
+     aceptan. Si el enlace abre la app, se acepta en ella; y si se abre en el navegador, en Android el
+     navegador y la app instalada comparten lo guardado en ese dominio, así que también queda en la app.
+     En una prueba en local, el sitio donde se está. */
+  const origen = enProduccion() ? new URL(APP_URL).origin : `${location.origin}${base}`;
+  return `${origen}/${tipo === 'de' ? 'de' : 'con'}/${id}`;
 }
