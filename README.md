@@ -38,7 +38,8 @@ js/util.js            Utilidades (paleta, tono, identificadores…)
 firebase-config.js    ← Aquí van los datos de tu proyecto de Firebase
 firestore.rules       Reglas de seguridad para pegar en Firebase
 netlify.toml          Redirecciones (/con/* y /de/* a su página) y cabeceras
-icons/                Favicon, icono de iOS e imagen para redes
+icons/                Favicon, icono de iOS, imagen para redes (og.png) y la tarjeta de las
+                      invitaciones (invitacion-con.png, invitacion-de.png: vista previa en WhatsApp…)
 ```
 
 ## Accesos directos desde la app

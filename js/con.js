@@ -721,9 +721,12 @@ document.querySelectorAll('[data-crear]').forEach(b => b.addEventListener('click
 async function invitar() {
   if (!listaId) return;
   const url = enlaceDe(listaId, tipoDe(lista), BASE);
-  const titulo = tituloDe(lista, usuario.uid);
+  /* Un mensaje corto; la tarjeta de la vista previa (og:image de la página) pone el resto. En «Cosas
+     con», el nombre es el de quien invita: así se llama la lista para quien la recibe. */
+  const mio = limpiar((lista.miembros && lista.miembros[usuario.uid] && lista.miembros[usuario.uid].nombre) || (perfil && perfil.nombre), 40);
+  const titulo = tipoDe(lista) === 'con' && mio ? `Cosas con ${mio}` : tituloDe(lista, usuario.uid);
   if (navigator.share) {
-    try { await navigator.share({ title: titulo, text: `Únete a «${titulo}» y apuntamos las cosas juntos:`, url }); return; }
+    try { await navigator.share({ title: titulo, text: `Te invito a «${titulo}»`, url }); return; }
     catch (e) { if (e && e.name === 'AbortError') return; }
   }
   await copiar(url);
