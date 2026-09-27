@@ -7,6 +7,11 @@ rules_version = '2';
 //   listas/{id}              { nombre, tipo: 'con' | 'de', color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
 //   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por }
 //   usuarios/{uid}           { nombre, color, actualizado }
+//   personales/{uid}/elementos/{id}   Las cosas de la app Cosas (cosas-app.netlify.app) de quien ha
+//                            entrado con Google, para tenerlas en todos sus dispositivos (app/nube.js):
+//                            { tipo: 'cosa', id, texto, hecha, creada, hechaEn, grupo }
+//                            { tipo: 'grupo', id, nombre, color, creada }
+//                            { tipo: 'ajustes', colorFondo, nombre }
 //
 // Cualquiera que tenga el enlace (y esté identificado, aunque sea de forma anónima) puede
 // leer una lista y unirse a ella añadiéndose a sí mismo. Solo los miembros pueden ver y
@@ -98,6 +103,44 @@ service cloud.firestore {
 
     match /usuarios/{uid} {
       allow read, write: if identificado() && request.auth.uid == uid;
+    }
+
+    // Tus cosas: solo tuyas, y con la forma que espera la app (los límites dejan margen a los de la
+    // app: 500 caracteres por cosa y 60 por nombre, que en bytes pueden ser más).
+    function numeroONulo(v) {
+      return v == null || v is number;
+    }
+
+    function textoONulo(v, max) {
+      return v == null || (v is string && v.size() <= max);
+    }
+
+    function cosaValida(d) {
+      return d.keys().hasOnly(['tipo', 'id', 'texto', 'hecha', 'creada', 'hechaEn', 'grupo'])
+        && textoValido(d.id, 200) && textoValido(d.texto, 2000) && d.hecha is bool
+        && d.creada is number && numeroONulo(d.hechaEn) && textoONulo(d.grupo, 200);
+    }
+
+    function grupoValido(d) {
+      return d.keys().hasOnly(['tipo', 'id', 'nombre', 'color', 'creada'])
+        && textoValido(d.id, 200) && textoValido(d.nombre, 200)
+        && (d.color == null || colorValido(d.color)) && d.creada is number;
+    }
+
+    function ajustesValidos(d) {
+      return d.keys().hasOnly(['tipo', 'colorFondo', 'nombre'])
+        && colorValido(d.colorFondo) && d.nombre is string && d.nombre.size() <= 200;
+    }
+
+    function elementoValido(d) {
+      return (d.tipo == 'cosa' && cosaValida(d))
+        || (d.tipo == 'grupo' && grupoValido(d))
+        || (d.tipo == 'ajustes' && ajustesValidos(d));
+    }
+
+    match /personales/{uid}/elementos/{elemento} {
+      allow read, delete: if identificado() && request.auth.uid == uid;
+      allow create, update: if identificado() && request.auth.uid == uid && elementoValido(request.resource.data);
     }
   }
 }

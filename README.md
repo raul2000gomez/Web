@@ -70,6 +70,12 @@ Cloud → APIs y servicios → Credenciales, tiene `https://cosas-app.netlify.ap
 entre sus URI de redirección. La cuenta con la que se ha entrado queda en `localStorage`
 (`cosascon:cuenta`) para que la app la enseñe.
 
+**Las cosas de la app, en la nube.** Con esa sesión de Google, la app (su `nube.js`) guarda también
+sus propias cosas, sus grupos, el color y el nombre en este mismo proyecto de Firebase, en
+`personales/{uid}/elementos`, para tenerlos en todos los dispositivos. Solo su dueño puede leerlos o
+escribirlos, con la forma que describen las reglas de `firestore.rules`. La app lee la sesión que dejan
+guardada estas páginas en su dominio y la configuración de `firebase-config.js` (su `netlify.toml` la sirve).
+
 ## Dónde está publicada
 
 Cada cambio en `main` se publica solo en **GitHub Pages** (flujo `.github/workflows/pages.yml`, que
