@@ -22,7 +22,7 @@ const el = {
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
   hoja: $('#hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
-  ajusteTipo: $('#ajuste-tipo'), ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
+  ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
   toast: $('#toast'),
   temaMeta: document.querySelectorAll('meta[name="theme-color"]')
@@ -184,11 +184,6 @@ function mostrarInicio() {
   cerrarCampo();
   escucharMias();
   pintarCuenta();
-}
-
-/* Pinta un conmutador y devuelve el tipo marcado. */
-function marcarConmutador(conmutador, tipo) {
-  conmutador.querySelectorAll('.conmutador-opcion').forEach(b => b.setAttribute('aria-checked', b.dataset.tipo === tipo ? 'true' : 'false'));
 }
 
 /* ---------- Barra «Añadir cosas con / de» ----------
@@ -665,14 +660,12 @@ el.copiarEnlace.addEventListener('click', () => copiar(enlaceDe(listaId, tipoDe(
 
 /* ---------- Ajustes de la lista (hoja) ---------- */
 
-let tipoAjuste = 'con';
-
+/* Una lista se queda con el tipo con el que se creó («Cosas con» o «Cosas de»): no se cambia aquí. */
 function abrirHoja() {
   if (!lista) return;
-  tipoAjuste = tipoDe(lista);
-  marcarConmutador(el.ajusteTipo, tipoAjuste);
-  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
-  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
+  const tipo = tipoDe(lista);
+  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipo].titulo}…`;
+  el.ajusteNombre.placeholder = TEXTOS[tipo].ejemplo;
   el.ajusteNombre.value = lista.nombre || '';
   el.ajusteMiNombre.value = perfil ? perfil.nombre : '';
   el.ajusteColores.innerHTML = '';
@@ -689,10 +682,6 @@ function abrirHoja() {
   });
   /* Con dos personas en una lista «con» no hay enlace que copiar. */
   el.copiarEnlace.hidden = esDeDos(lista);
-  /* Para pasar a «Cosas con», la lista tiene que ser de dos como mucho. */
-  const opcionCon = el.ajusteTipo.querySelector('[data-tipo="con"]');
-  opcionCon.disabled = (lista.uids || []).length > 2;
-  opcionCon.title = opcionCon.disabled ? '«Cosas con» es solo para dos personas' : '';
   el.hojaNota.innerHTML = '';
   if (esDeDos(lista)) {
     el.hojaNota.textContent = '«Cosas con» es solo para dos y ya estáis los dos: el enlace no admite a nadie más. Si queréis apuntar cosas más gente, cread un grupo en Cosas de.';
@@ -735,15 +724,6 @@ el.abrirCuenta.addEventListener('click', abrirCuenta);
 document.querySelectorAll('[data-cerrar-hoja]').forEach(b => b.addEventListener('click', cerrarHoja));
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja(); });
 
-el.ajusteTipo.addEventListener('click', ev => {
-  const b = ev.target.closest('.conmutador-opcion');
-  if (!b || b.disabled) return;
-  tipoAjuste = b.dataset.tipo === 'de' ? 'de' : 'con';
-  marcarConmutador(el.ajusteTipo, tipoAjuste);
-  el.ajusteEtiquetaNombre.textContent = `${TEXTOS[tipoAjuste].titulo}…`;
-  el.ajusteNombre.placeholder = TEXTOS[tipoAjuste].ejemplo;
-});
-
 el.ajusteColores.addEventListener('click', ev => {
   const b = ev.target.closest('.hoja-muestra');
   if (!b) return;
@@ -760,7 +740,6 @@ el.formAjustes.addEventListener('submit', async ev => {
   const miNombre = limpiar(el.ajusteMiNombre.value, 40) || (perfil && perfil.nombre);
   const cambios = {};
   if (nombre !== lista.nombre) cambios.nombre = nombre;
-  if (tipoAjuste !== tipoDe(lista)) cambios.tipo = tipoAjuste;
   if (color !== lista.color) cambios.color = color;
   try {
     if (Object.keys(cambios).length) await almacen.actualizarLista(listaId, cambios);
@@ -770,12 +749,10 @@ el.formAjustes.addEventListener('submit', async ev => {
       await almacen.actualizarMiembro(listaId, perfil);
     }
     if (color) lista = { ...lista, color };
-    if (cambios.tipo) { lista = { ...lista, tipo: cambios.tipo }; history.replaceState({}, '', `${BASE}/${cambios.tipo}/${listaId}`); }
     colorPrevisualizado = null;
     cerrarHoja();
     toast('Guardado', { icono: true });
   } catch (e) {
-    if (e && e.message === 'demasiados') return toast('«Cosas con» es solo para dos personas.');
     console.error(e);
     toast('No se pudo guardar.');
   }
