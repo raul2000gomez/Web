@@ -3,8 +3,8 @@
    Firebase; si no, el local), enruta según la URL (/con/ o /con/ID) y pinta las vistas:
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
-import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
-import { crearAlmacenLocal } from './almacen-local.js';
+import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos, ordenar } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
+import { crearAlmacenLocal } from './almacen-local.js?v=2'; // Con versión: el de antes no tiene grupos.
 
 const $ = s => document.querySelector(s);
 const raiz = document.documentElement;
@@ -20,6 +20,12 @@ const el = {
   formNombre: $('#form-nombre'), campoNombre: $('#campo-nombre'), entrar: $('#entrar'),
   tituloLista: $('#titulo-lista'), miembros: $('#miembros'), invitar: $('#invitar'), abrirAjustes: $('#abrir-ajustes'), volver: $('#volver'),
   cosas: $('#cosas'), vacio: $('#vacio'), formCosa: $('#form-cosa'), campoCosa: $('#campo-cosa'), enviar: $('#enviar'),
+  formGrupo: $('#form-grupo'), crearGrupo: $('#crear-grupo'), campoGrupo: $('#campo-grupo'), confirmarGrupo: $('#confirmar-grupo'),
+  volverGrupo: $('#volver-grupo'), tituloGrupo: $('#titulo-grupo'), editarGrupo: $('#editar-grupo'),
+  cosasGrupo: $('#cosas-grupo'), grupoVacio: $('#grupo-vacio'),
+  candidatas: $('#candidatas'), listaCandidatas: $('#lista-candidatas'), sinCandidatas: $('#sin-candidatas'), anadirCosas: $('#anadir-cosas'),
+  formCosaGrupo: $('#form-cosa-grupo'), campoCosaGrupo: $('#campo-cosa-grupo'), enviarGrupo: $('#enviar-grupo'),
+  hojaGrupo: $('#hoja-grupo'), formEditarGrupo: $('#form-editar-grupo'), nombreGrupo: $('#nombre-grupo'), coloresGrupo: $('#colores-grupo'),
   hoja: $('#hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
   ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
@@ -31,6 +37,10 @@ const el = {
 const ICONO_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 7 10 16.5 5 12"/></svg>';
 const ICONO_FLECHA = '<svg class="flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5.5 15.5 12 9 18.5"/></svg>';
 const ICONO_BORRAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9.5 7V5a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v2M6.5 7l.8 11.2a2 2 0 0 0 2 1.8h5.4a2 2 0 0 0 2-1.8L17.5 7M10 11v5M14 11v5"/></svg>';
+const ICONO_OJO = '<svg class="ojo-abierto" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>'
+  + '<svg class="ojo-cerrado" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M3 3l18 18M10.6 5.7A11 11 0 0 1 12 5.5c6.5 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.3 4.1M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 6.5 10 6.5a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+const ICONO_QUITAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>';
+const ICONO_MAS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
 
 let almacen = null;
 let usuario = null;
@@ -52,8 +62,16 @@ const TEXTOS = {
 let listaId = null;
 let lista = null;
 let cosasActuales = new Map(); // id -> datos
-const filas = new Map();       // id -> <li>
-let pararLista = null, pararCosas = null, pararMias = null;
+let gruposActuales = new Map(); // id -> datos de un grupo de cosas de la lista (el más nuevo primero)
+let gruposCargados = false;    // Ya ha llegado la primera lectura de los grupos.
+let grupoAbierto = null;       // El grupo cuya página se enseña (vista «grupo»).
+const filas = new Map();       // id -> <li> de la lista (sueltas y dentro de los grupos)
+const filasGrupo = new Map();  // id de grupo -> <li> de la lista
+const filasMiembro = new Map(); // id -> <li> de la página del grupo
+const filasCandidata = new Map(); // id -> <li> del desplegable «Añadir cosas»
+let candidatasAbiertas = false;
+let ultimaAlternancia = -Infinity; // Último toque en «Añadir cosas».
+let pararLista = null, pararCosas = null, pararGrupos = null, pararMias = null;
 let colorPrevisualizado = null;
 
 /* El dominio de la app también sirve estas páginas (su netlify.toml las trae de cosas.info): así
@@ -108,7 +126,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js?v=2'); // Con versión: hace falta redireccion().
+      const m = await import('./almacen-firebase.js?v=3'); // Con versión: hacen falta los grupos.
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -150,22 +168,24 @@ function idDeUrl() {
   return esId(q) ? q : null;
 }
 
-function ir(ruta) {
-  history.pushState({}, '', ruta);
+function ir(ruta, estado = {}) {
+  history.pushState(estado, '', ruta);
   enrutar();
 }
 
 function mostrar(nombre) {
   document.querySelectorAll('.vista').forEach(v => v.classList.toggle('activa', v.dataset.vista === nombre));
   raiz.dataset.vista = nombre;
-  if (nombre !== 'lista') pintarColor(FONDO);
+  if (nombre !== 'lista' && nombre !== 'grupo') pintarColor(FONDO);
   window.scrollTo(0, 0);
 }
 
 async function enrutar() {
   cerrarHoja();
-  cerrarLista();
   const id = idDeUrl();
+  /* La misma lista, ya abierta: solo se pasa de la lista a uno de sus grupos o al revés. */
+  if (id && id === listaId && lista) return mostrarVistaDeLista();
+  cerrarLista();
   if (!id) return mostrarInicio();
   /* Si se ha llegado con ?l=ID (así llega desde 404.html en un servidor sin redirecciones), se
      deja la dirección bonita. */
@@ -514,17 +534,42 @@ async function entrarEnLista() {
   }
 }
 
-/* ---------- Lista ---------- */
+/* ---------- Lista ----------
+   Como la lista de la app: arriba los grupos de cosas (el más nuevo primero), luego las cosas sueltas
+   pendientes y al final las hechas. El ojo de un grupo despliega sus cosas bajo su fila (lo abierto se
+   recuerda en este dispositivo); su nombre lleva a su página (#grupo/ID). */
+
+const CLAVE_ABIERTOS = 'cosascon:grupos-abiertos';
+let abiertos = new Set();       // Grupos desplegados de la lista abierta (en este dispositivo).
+let ultimoMovimiento = -Infinity; // Último borrar, quitar o añadir: la fila vecina sube bajo el dedo.
+
+function leerAbiertos(id) {
+  try {
+    const todos = JSON.parse(localStorage.getItem(CLAVE_ABIERTOS) || '{}') || {};
+    return new Set(Array.isArray(todos[id]) ? todos[id] : []);
+  } catch (e) { return new Set(); }
+}
+
+function guardarAbiertos() {
+  try {
+    const todos = JSON.parse(localStorage.getItem(CLAVE_ABIERTOS) || '{}') || {};
+    todos[listaId] = [...abiertos].filter(gid => gruposActuales.has(gid));
+    localStorage.setItem(CLAVE_ABIERTOS, JSON.stringify(todos));
+  } catch (e) { /* Sin almacenamiento: se olvida al salir. */ }
+}
 
 function abrirLista(id, datos) {
   listaId = id;
   lista = datos;
   cosasActuales = new Map();
-  filas.clear();
+  gruposActuales = new Map();
+  gruposCargados = false;
+  abiertos = leerAbiertos(id);
+  [filas, filasGrupo, filasMiembro, filasCandidata].forEach(m => m.clear());
   el.cosas.innerHTML = '';
+  el.cosasGrupo.innerHTML = '';
+  el.listaCandidatas.innerHTML = '';
   el.vacio.hidden = true;
-  mostrar('lista');
-  pintarLista(datos);
 
   pararLista = almacen.escucharLista(id, l => {
     if (!l) { cerrarLista(); document.title = TEXTOS[tipoPagina].titulo; mostrar('no-existe'); return; }
@@ -532,16 +577,29 @@ function abrirLista(id, datos) {
     lista = l;
     pintarLista(l);
   });
-  pararCosas = almacen.escucharCosas(id, pintarCosas);
+  pararCosas = almacen.escucharCosas(id, cosas => {
+    cosasActuales = new Map(cosas.map(c => [c.id, c]));
+    pintar();
+  });
+  pararGrupos = almacen.escucharGrupos(id, grupos => {
+    gruposActuales = new Map(grupos.map(g => [g.id, g]));
+    gruposCargados = true;
+    pintar();
+  });
 
-  if (window.matchMedia('(pointer: fine)').matches) el.campoCosa.focus();
+  mostrarVistaDeLista();
+  if (raiz.dataset.vista === 'lista' && window.matchMedia('(pointer: fine)').matches) el.campoCosa.focus();
 }
 
 function cerrarLista() {
   if (pararLista) { pararLista(); pararLista = null; }
   if (pararCosas) { pararCosas(); pararCosas = null; }
+  if (pararGrupos) { pararGrupos(); pararGrupos = null; }
+  cerrarCandidatas();
+  cerrarCampoGrupo();
   listaId = null;
   lista = null;
+  grupoAbierto = null;
   colorPrevisualizado = null;
 }
 
@@ -550,17 +608,34 @@ function pintarTema(color) {
   el.temaMeta.forEach(m => { m.content = color; });
 }
 
+/* Casi negro: oscurecer ya no se distingue (la fila de un grupo se aclara; con.css). */
+function esProfundo(hex) {
+  if (!esColor(hex)) return false;
+  const canal = i => {
+    const v = parseInt(hex.substr(i, 2), 16) / 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5) < 0.03;
+}
+
 function pintarColor(color) {
   raiz.style.setProperty('--fondo', color);
   raiz.dataset.tono = tono(color);
+  if (esProfundo(color)) raiz.dataset.fondo = 'profundo';
+  else delete raiz.dataset.fondo;
   pintarTema(color);
 }
 
+/* Lo de la lista en sí: título, color, miembros y botones. */
 function pintarLista(l) {
   const titulo = tituloDe(l, usuario.uid);
   el.tituloLista.textContent = titulo;
-  document.title = titulo;
-  pintarColor(colorPrevisualizado || l.color || '#2F6FED');
+  if (raiz.dataset.vista === 'lista') {
+    document.title = titulo;
+    pintarColor(colorPrevisualizado || l.color || '#2F6FED');
+  } else if (raiz.dataset.vista === 'grupo') {
+    pintarPaginaGrupo(false); // Sin color propio, el grupo lleva el de la lista.
+  }
 
   el.miembros.innerHTML = '';
   const uids = l.uids || [];
@@ -583,14 +658,38 @@ function pintarLista(l) {
   /* Con las dos personas dentro, «Cosas con» ya no admite a nadie: sin invitar. */
   el.invitar.hidden = esDeDos(l);
   /* Las cosas llevan el avatar de quien las añadió: si cambia un nombre o color, se repintan. */
-  filas.forEach((li, cid) => { const c = cosasActuales.get(cid); if (c) actualizarFila(li, c); });
+  [filas, filasMiembro, filasCandidata].forEach(m => m.forEach((li, cid) => { const c = cosasActuales.get(cid); if (c) actualizarFila(li, c); }));
 }
 
-function crearFila(c) {
+/* El grupo de una cosa, si existe (una cosa de un grupo borrado vuelve a estar suelta). */
+function grupoDe(c) {
+  return c.grupo && gruposActuales.has(c.grupo) ? c.grupo : null;
+}
+
+function cosasDe(gid) {
+  return ordenar([...cosasActuales.values()].filter(c => grupoDe(c) === gid));
+}
+
+function pintar() {
+  if (!listaId) return;
+  pintarNivel();
+  if (raiz.dataset.vista === 'grupo') pintarPaginaGrupo();
+}
+
+function botonFinal(accion) {
+  if (accion === 'quitar') return `<button type="button" class="borrar quitar" data-accion="quitar" aria-label="Quitar del grupo">${ICONO_QUITAR}</button>`;
+  if (accion === 'anadir') return `<button type="button" class="borrar mas" data-accion="anadir" aria-label="Añadir al grupo">${ICONO_MAS}</button>`;
+  return `<button type="button" class="borrar" data-accion="borrar" aria-label="Eliminar">${ICONO_BORRAR}</button>`;
+}
+
+/* Una fila de cosa: en la lista (con «borrar»), en la página de un grupo (con «quitar») o en el
+   desplegable de «Añadir cosas» (sin check y con «añadir»). */
+function crearFila(c, accion = 'borrar') {
   const li = document.createElement('li');
-  li.className = 'fila';
+  li.className = accion === 'anadir' ? 'fila candidata' : 'fila';
   li.dataset.id = c.id;
-  li.innerHTML = `<button type="button" class="hecho" data-accion="alternar" aria-pressed="false" aria-label="Marcar como hecha">${ICONO_CHECK}</button><p class="fila-texto"></p><span class="avatar" hidden></span><button type="button" class="borrar" data-accion="borrar" aria-label="Eliminar">${ICONO_BORRAR}</button>`;
+  const check = accion === 'anadir' ? '' : `<button type="button" class="hecho" data-accion="alternar" aria-pressed="false" aria-label="Marcar como hecha">${ICONO_CHECK}</button>`;
+  li.innerHTML = `${check}<p class="fila-texto"></p><span class="avatar" hidden></span>${botonFinal(accion)}`;
   actualizarFila(li, c);
   return li;
 }
@@ -601,8 +700,10 @@ function actualizarFila(li, c) {
   const hecha = !!c.hecha;
   li.classList.toggle('hecha', hecha);
   const boton = li.querySelector('.hecho');
-  boton.setAttribute('aria-pressed', hecha ? 'true' : 'false');
-  boton.setAttribute('aria-label', hecha ? 'Marcar como pendiente' : 'Marcar como hecha');
+  if (boton) {
+    boton.setAttribute('aria-pressed', hecha ? 'true' : 'false');
+    boton.setAttribute('aria-label', hecha ? 'Marcar como pendiente' : 'Marcar como hecha');
+  }
   const av = li.querySelector('.avatar');
   const m = lista && lista.miembros ? lista.miembros[c.por] : null;
   const ajena = c.por && c.por !== usuario.uid;
@@ -616,78 +717,239 @@ function actualizarFila(li, c) {
   }
 }
 
-function pintarCosas(cosas) {
-  /* FLIP: se mide dónde estaba cada fila para deslizarla si cambia de sitio. */
-  const antes = new Map();
-  if (!menosMovimiento) filas.forEach((li, cid) => { if (li.isConnected) antes.set(cid, li.getBoundingClientRect().top); });
+function pintarOjo(ojo, abierto) {
+  ojo.setAttribute('aria-expanded', String(abierto));
+  ojo.setAttribute('aria-label', abierto ? 'Ocultar cosas del grupo' : 'Ver cosas del grupo');
+  ojo.querySelector('.ojo-abierto').toggleAttribute('hidden', abierto);
+  ojo.querySelector('.ojo-cerrado').toggleAttribute('hidden', !abierto);
+}
 
-  const vistos = new Set();
-  cosasActuales = new Map(cosas.map(c => [c.id, c]));
-  const visibles = () => Array.from(el.cosas.children).filter(x => !x.classList.contains('saliendo'));
+let contadorPliegues = 0;
 
-  cosas.forEach((c, i) => {
-    vistos.add(c.id);
-    let li = filas.get(c.id);
-    if (!li) {
-      li = crearFila(c);
-      filas.set(c.id, li);
-      li.classList.add('nueva');
-      li.addEventListener('animationend', () => li.classList.remove('nueva'), { once: true });
-    } else {
-      actualizarFila(li, c);
-    }
-    const objetivo = visibles()[i];
-    if (objetivo !== li) el.cosas.insertBefore(li, objetivo || null);
-  });
+function crearFilaGrupo(g) {
+  const li = document.createElement('li');
+  li.className = 'grupo-fila';
+  li.dataset.id = g.id;
+  contadorPliegues += 1;
+  const pliegue = `pliegue-${contadorPliegues}`;
+  li.innerHTML = `<div class="fila fila-grupo"><button type="button" class="ojo" data-accion="ver" aria-controls="${pliegue}">${ICONO_OJO}</button>`
+    + '<p class="fila-texto"><a class="enlace-grupo" href="#"></a></p>'
+    + `<button type="button" class="borrar" data-accion="borrar-grupo" aria-label="Eliminar grupo">${ICONO_BORRAR}</button></div>`
+    + `<div class="pliegue" id="${pliegue}" hidden><ul class="anidada" role="list"></ul><p class="nota grupo-vacio" hidden>Este grupo está vacío.</p></div>`;
+  li.querySelector('.pliegue').hidden = !abiertos.has(g.id);
+  pintarFilaGrupo(li, g);
+  return li;
+}
 
-  filas.forEach((li, cid) => {
-    if (vistos.has(cid)) return;
-    filas.delete(cid);
-    if (menosMovimiento || !li.isConnected) { li.remove(); return; }
-    li.classList.add('saliendo');
-    setTimeout(() => li.remove(), 180);
-  });
+function pintarFilaGrupo(li, g) {
+  const enlace = li.querySelector('.enlace-grupo');
+  if (enlace.textContent !== g.nombre) enlace.textContent = g.nombre;
+  enlace.href = `${RUTA_INICIO}${listaId}#grupo/${g.id}`;
+  const color = esColor(g.color) ? g.color : null;
+  li.querySelector('.ojo').classList.toggle('con-color', !!color);
+  li.style.setProperty('--color-grupo', color || 'transparent');
+  li.style.setProperty('--tinta-grupo', color && tono(color) === 'claro' ? '#0A0A0A' : '#FFFFFF');
+  pintarOjo(li.querySelector('.ojo'), abiertos.has(g.id));
+}
 
-  el.vacio.hidden = cosas.length > 0;
+function aparecer(li) {
+  li.classList.add('nueva');
+  li.addEventListener('animationend', () => li.classList.remove('nueva'), { once: true });
+}
 
-  if (!menosMovimiento) {
-    filas.forEach((li, cid) => {
-      const y = antes.get(cid);
-      if (y === undefined) return;
-      const d = y - li.getBoundingClientRect().top;
-      if (Math.abs(d) > 1) li.animate([{ transform: `translateY(${d}px)` }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
-    });
+/* Se va con su animación y sale del documento al terminar. */
+function retirar(li) {
+  if (menosMovimiento || !li.isConnected) { li.remove(); return; }
+  li.classList.add('saliendo');
+  setTimeout(() => li.remove(), 180);
+}
+
+/* La fila de «c» dentro de «contenedor»: la misma si ya estaba ahí; si estaba en otro sitio, una nueva. */
+function filaEn(mapa, c, contenedor, crear, nuevas) {
+  const existente = mapa.get(c.id);
+  if (existente && existente.parentElement === contenedor && !existente.classList.contains('saliendo')) {
+    actualizarFila(existente, c);
+    return existente;
+  }
+  if (existente && !existente.classList.contains('saliendo')) existente.remove();
+  const li = crear(c);
+  mapa.set(c.id, li);
+  if (nuevas) aparecer(li);
+  return li;
+}
+
+/* Deja «elementos» en ese orden dentro del contenedor: mueve solo lo que no está en su sitio, respeta las
+   filas que se están yendo y quita las que ya no tocan. */
+function colocar(contenedor, elementos) {
+  const deseados = new Set(elementos);
+  for (const hijo of Array.from(contenedor.children)) {
+    if (!deseados.has(hijo) && !hijo.classList.contains('saliendo')) hijo.remove();
+  }
+  let cursor = contenedor.firstElementChild;
+  for (const elemento of elementos) {
+    while (cursor && cursor !== elemento && cursor.classList.contains('saliendo')) cursor = cursor.nextElementSibling;
+    if (cursor === elemento) { cursor = elemento.nextElementSibling; continue; }
+    contenedor.insertBefore(elemento, cursor);
   }
 }
 
-el.cosas.addEventListener('click', async ev => {
+/* FLIP: dónde se veía cada fila antes de un cambio, para deslizarla a su sitio nuevo. */
+function medir(contenedor) {
+  if (menosMovimiento) return null;
+  const filasVistas = contenedor.querySelectorAll('li');
+  if (filasVistas.length > 150) return null;
+  const medidas = new Map();
+  filasVistas.forEach(li => medidas.set(li, li.getBoundingClientRect().top));
+  return medidas;
+}
+
+function deslizar(antes) {
+  if (!antes) return;
+  const desplazamientos = new Map();
+  for (const [li, top] of antes) {
+    if (!li.isConnected || li.classList.contains('saliendo')) continue;
+    desplazamientos.set(li, top - li.getBoundingClientRect().top);
+  }
+  for (const [li, d] of desplazamientos) {
+    // Una fila anidada ya se mueve con su grupo: solo cuenta lo que se desplaza dentro de él.
+    const padre = li.parentElement.closest('li');
+    const propio = d - (padre && desplazamientos.has(padre) ? desplazamientos.get(padre) : 0);
+    if (Math.abs(propio) > 1) li.animate([{ transform: `translateY(${propio}px)` }, { transform: 'none' }], { duration: 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  }
+}
+
+/* La lista: grupos (con sus cosas dentro) y cosas sueltas. */
+function pintarNivel(nuevas = true) {
+  const antes = raiz.dataset.vista === 'lista' ? medir(el.cosas) : null;
+  for (const [cid, li] of filas) if (!cosasActuales.has(cid)) { filas.delete(cid); retirar(li); }
+  for (const [gid, li] of filasGrupo) if (!gruposActuales.has(gid)) { filasGrupo.delete(gid); retirar(li); }
+
+  const grupos = [...gruposActuales.values()];
+  const sueltas = cosasDe(null);
+  colocar(el.cosas, [
+    ...grupos.map(g => {
+      const existente = filasGrupo.get(g.id);
+      if (existente && !existente.classList.contains('saliendo')) { pintarFilaGrupo(existente, g); return existente; }
+      const li = crearFilaGrupo(g);
+      filasGrupo.set(g.id, li);
+      if (nuevas) aparecer(li);
+      return li;
+    }),
+    ...sueltas.map(c => filaEn(filas, c, el.cosas, crearFila, nuevas))
+  ]);
+  for (const g of grupos) {
+    const li = filasGrupo.get(g.id);
+    const anidada = li.querySelector('.anidada');
+    const dentro = cosasDe(g.id);
+    colocar(anidada, dentro.map(c => filaEn(filas, c, anidada, crearFila, nuevas)));
+    li.querySelector('.grupo-vacio').hidden = dentro.length > 0;
+  }
+  el.vacio.hidden = grupos.length > 0 || cosasActuales.size > 0;
+  deslizar(antes);
+}
+
+const temporizadoresPliegue = new WeakMap();
+
+/* Despliega o pliega las cosas de un grupo (altura y opacidad; al instante con menos movimiento). */
+function plegar(pliegue, abrir) {
+  clearTimeout(temporizadoresPliegue.get(pliegue));
+  pliegue.classList.remove('plegando', 'oculto');
+  pliegue.style.height = '';
+  if (menosMovimiento) { pliegue.hidden = !abrir; return; }
+  pliegue.hidden = false;
+  const alto = `${pliegue.scrollHeight}px`;
+  pliegue.style.height = abrir ? '0px' : alto;
+  pliegue.classList.add('plegando');
+  pliegue.classList.toggle('oculto', abrir);
+  void pliegue.offsetHeight;
+  pliegue.style.height = abrir ? alto : '0px';
+  pliegue.classList.toggle('oculto', !abrir);
+  temporizadoresPliegue.set(pliegue, setTimeout(() => {
+    pliegue.classList.remove('plegando', 'oculto');
+    pliegue.style.height = '';
+    pliegue.hidden = !abrir;
+  }, 240));
+}
+
+function alternarOjo(gid) {
+  const li = filasGrupo.get(gid);
+  if (!li) return;
+  const abrir = !abiertos.has(gid);
+  if (abrir) abiertos.add(gid); else abiertos.delete(gid);
+  guardarAbiertos();
+  pintarOjo(li.querySelector('.ojo'), abrir);
+  plegar(li.querySelector('.pliegue'), abrir);
+}
+
+async function alternar(li, c) {
+  const hecha = !c.hecha;
+  actualizarFila(li, { ...c, hecha });
+  try { await almacen.alternarCosa(listaId, c.id, hecha); }
+  catch (e) { actualizarFila(li, c); toast('No se pudo guardar.'); }
+}
+
+async function borrarCosa(li, c) {
+  const copia = { ...c };
+  const id = listaId;
+  ultimoMovimiento = performance.now();
+  filas.delete(c.id);
+  cosasActuales.delete(c.id);
+  retirar(li);
+  el.vacio.hidden = gruposActuales.size > 0 || cosasActuales.size > 0;
+  try {
+    await almacen.borrarCosa(id, c.id);
+    toast('Eliminada', {
+      icono: true, accion: 'Deshacer', alAccionar: () => {
+        // Si su grupo ya no existe, vuelve suelta.
+        if (copia.grupo && !gruposActuales.has(copia.grupo)) copia.grupo = null;
+        almacen.restaurarCosa(id, copia).catch(() => toast('No se pudo recuperar.'));
+      }
+    });
+  } catch (e) { toast('No se pudo eliminar.'); }
+}
+
+/* Borra el grupo: sus cosas vuelven a la lista. «Deshacer» lo repone con las mismas cosas dentro. */
+function borrarGrupo(gid) {
+  const g = gruposActuales.get(gid);
+  const li = filasGrupo.get(gid);
+  if (!g || !li) return;
+  const id = listaId;
+  const copia = { ...g };
+  const dentro = cosasDe(gid).map(c => c.id); // Las que vuelven a la lista (y al grupo, si se deshace).
+  ultimoMovimiento = performance.now();
+  /* El aviso sale ya (sin esperar a la nube: sin conexión, se guarda al volver). */
+  almacen.borrarGrupo(id, gid).catch(e => { console.error(e); toast('No se pudo eliminar el grupo.'); });
+  toast('Grupo eliminado', {
+    icono: true, accion: 'Deshacer',
+    alAccionar: () => almacen.restaurarGrupo(id, copia, dentro).catch(() => toast('No se pudo recuperar.'))
+  });
+}
+
+function abrirGrupo(gid) {
+  if (!gruposActuales.has(gid)) return;
+  ir(`${RUTA_INICIO}${listaId}#grupo/${gid}`, { desdeLista: true });
+}
+
+el.cosas.addEventListener('click', ev => {
+  const enlace = ev.target.closest('.enlace-grupo');
+  if (enlace) {
+    if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+    ev.preventDefault();
+    abrirGrupo(enlace.closest('.grupo-fila').dataset.id);
+    return;
+  }
   const boton = ev.target.closest('[data-accion]');
-  if (!boton || !listaId) return;
+  if (!boton || !listaId || boton.closest('.saliendo')) return;
+  const accion = boton.dataset.accion;
+  if (accion === 'ver') { alternarOjo(boton.closest('.grupo-fila').dataset.id); return; }
+  // Al borrar, la fila vecina sube y su botón queda bajo el dedo: el segundo toque no se la lleva.
+  if (accion !== 'alternar' && performance.now() - ultimoMovimiento < GUARDA_DOBLE_TOQUE) return;
+  if (accion === 'borrar-grupo') { borrarGrupo(boton.closest('.grupo-fila').dataset.id); return; }
   const li = boton.closest('.fila');
-  const cid = li.dataset.id;
-  const c = cosasActuales.get(cid);
+  const c = cosasActuales.get(li.dataset.id);
   if (!c) return;
-
-  if (boton.dataset.accion === 'alternar') {
-    const hecha = !c.hecha;
-    actualizarFila(li, { ...c, hecha });
-    try { await almacen.alternarCosa(listaId, cid, hecha); }
-    catch (e) { actualizarFila(li, c); toast('No se pudo guardar.'); }
-  }
-
-  if (boton.dataset.accion === 'borrar') {
-    const copia = { ...c };
-    const id = listaId;
-    filas.delete(cid);
-    cosasActuales.delete(cid);
-    li.classList.add('saliendo');
-    setTimeout(() => li.remove(), 180);
-    el.vacio.hidden = cosasActuales.size > 0;
-    try {
-      await almacen.borrarCosa(id, cid);
-      toast('Eliminada', { icono: true, accion: 'Deshacer', alAccionar: () => almacen.restaurarCosa(id, copia).catch(() => toast('No se pudo recuperar.')) });
-    } catch (e) { toast('No se pudo eliminar.'); }
-  }
+  if (accion === 'alternar') alternar(li, c);
+  if (accion === 'borrar') borrarCosa(li, c);
 });
 
 el.campoCosa.addEventListener('input', () => { el.enviar.disabled = !limpiar(el.campoCosa.value, 500); });
@@ -701,6 +963,272 @@ el.formCosa.addEventListener('submit', async ev => {
   el.campoCosa.focus();
   try { await almacen.anadirCosa(listaId, texto); }
   catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosa.value = texto; el.enviar.disabled = false; }
+});
+
+/* ---------- Barra «Crear grupo de cosas» ----------
+   Como en la app: en reposo la píldora es un botón; al pulsarla pasa a campo con «Crear» al final. */
+
+let editandoGrupo = false;
+let ultimaCreacionGrupo = -Infinity;
+
+function abrirCampoGrupo() {
+  if (editandoGrupo || performance.now() - ultimaCreacionGrupo < GUARDA_DOBLE_TOQUE) return;
+  editandoGrupo = true;
+  el.formGrupo.classList.add('editando');
+  el.crearGrupo.hidden = true;
+  el.campoGrupo.hidden = false;
+  el.confirmarGrupo.hidden = false;
+  el.confirmarGrupo.disabled = !limpiar(el.campoGrupo.value, 60);
+  el.campoGrupo.focus({ preventScroll: true });
+}
+
+function cerrarCampoGrupo(enfocar = false) {
+  if (!editandoGrupo) return;
+  editandoGrupo = false;
+  el.campoGrupo.value = '';
+  el.formGrupo.classList.remove('editando');
+  el.campoGrupo.hidden = true;
+  el.confirmarGrupo.hidden = true;
+  el.confirmarGrupo.disabled = true;
+  el.crearGrupo.hidden = false;
+  if (enfocar) el.crearGrupo.focus({ preventScroll: true });
+}
+
+el.crearGrupo.addEventListener('click', abrirCampoGrupo);
+el.campoGrupo.addEventListener('input', () => { el.confirmarGrupo.disabled = !limpiar(el.campoGrupo.value, 60); });
+el.campoGrupo.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  cerrarCampoGrupo(true);
+});
+/* Salir del campo sin haber escrito nada es cancelar (el toque en «Crear» llega antes que esto). */
+el.campoGrupo.addEventListener('blur', () => { if (!limpiar(el.campoGrupo.value, 60)) cerrarCampoGrupo(); });
+
+el.formGrupo.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const nombre = limpiar(el.campoGrupo.value, 60);
+  if (!nombre || !listaId) return;
+  ultimaCreacionGrupo = performance.now();
+  el.campoGrupo.value = '';
+  el.campoGrupo.blur(); // Cierra el teclado.
+  cerrarCampoGrupo();
+  try {
+    await almacen.crearGrupo(listaId, nombre);
+    toast('Grupo creado', { icono: true });
+  } catch (e) { console.error(e); toast('No se pudo crear el grupo.'); }
+});
+
+/* ---------- Página de un grupo de cosas (#grupo/ID) ---------- */
+
+function grupoDeUrl() {
+  const m = /^#grupo\/([A-Za-z0-9_-]{1,40})$/.exec(location.hash);
+  return m ? m[1] : null;
+}
+
+/* Con la lista ya abierta: la lista o, si la dirección lo pide, la página de uno de sus grupos. */
+function mostrarVistaDeLista() {
+  const gid = grupoDeUrl();
+  if (gid) mostrarGrupo(gid);
+  else mostrarLaLista();
+}
+
+function mostrarLaLista() {
+  const venia = raiz.dataset.vista === 'grupo' ? grupoAbierto : null;
+  cerrarCandidatas();
+  grupoAbierto = null;
+  el.campoCosaGrupo.value = ''; // Lo que quedó a medio escribir era para ese grupo.
+  el.enviarGrupo.disabled = true;
+  mostrar('lista');
+  if (lista) pintarLista(lista);
+  pintarNivel(false);
+  /* De vuelta de un grupo, la lista enseña su fila. */
+  const fila = venia && filasGrupo.get(venia);
+  if (fila) fila.scrollIntoView({ block: 'center' });
+}
+
+function mostrarGrupo(gid) {
+  cerrarCampoGrupo();
+  if (grupoAbierto !== gid) {
+    cerrarCandidatas();
+    filasMiembro.clear();
+    el.cosasGrupo.innerHTML = '';
+    el.campoCosaGrupo.value = '';
+    el.enviarGrupo.disabled = true;
+  }
+  grupoAbierto = gid;
+  mostrar('grupo');
+  pintarPaginaGrupo(false);
+  el.tituloGrupo.focus({ preventScroll: true });
+}
+
+function colorDelGrupo(g) {
+  return esColor(g.color) ? g.color : ((lista && lista.color) || '#2F6FED');
+}
+
+function pintarPaginaGrupo(nuevas = true) {
+  if (!listaId || !grupoAbierto) return;
+  const g = gruposActuales.get(grupoAbierto);
+  if (!g) {
+    if (!gruposCargados) return; // Aún llegan: se pinta entonces.
+    /* Ya no existe (lo han borrado): a la lista. */
+    history.replaceState({}, '', `${RUTA_INICIO}${listaId}`);
+    mostrarLaLista();
+    toast('Ese grupo ya no existe.');
+    return;
+  }
+  el.tituloGrupo.textContent = g.nombre;
+  document.title = g.nombre;
+  if (!el.hojaGrupo.classList.contains('abierta')) pintarColor(colorDelGrupo(g));
+
+  const antes = medir(el.cosasGrupo);
+  const dentro = cosasDe(g.id);
+  const ids = new Set(dentro.map(c => c.id));
+  for (const [cid, li] of filasMiembro) if (!ids.has(cid)) { filasMiembro.delete(cid); retirar(li); }
+  colocar(el.cosasGrupo, dentro.map(c => filaEn(filasMiembro, c, el.cosasGrupo, x => crearFila(x, 'quitar'), nuevas)));
+  el.grupoVacio.hidden = dentro.length > 0;
+  deslizar(antes);
+
+  if (candidatasAbiertas) {
+    // Solo las cosas sueltas: una que ya está en otro grupo no se ofrece.
+    const sueltas = cosasDe(null);
+    const libres = new Set(sueltas.map(c => c.id));
+    for (const [cid, li] of filasCandidata) if (!libres.has(cid)) { filasCandidata.delete(cid); retirar(li); }
+    colocar(el.listaCandidatas, sueltas.map(c => filaEn(filasCandidata, c, el.listaCandidatas, x => crearFila(x, 'anadir'), nuevas)));
+    el.sinCandidatas.hidden = sueltas.length > 0;
+  }
+}
+
+function volverDelGrupo() {
+  if (history.state && history.state.desdeLista) { history.back(); return; }
+  history.replaceState({}, '', `${RUTA_INICIO}${listaId}`);
+  enrutar();
+}
+
+el.volverGrupo.addEventListener('click', ev => { ev.preventDefault(); volverDelGrupo(); });
+
+/* «Añadir cosas»: despliega hacia arriba las cosas sueltas de la lista, cada una con «+». */
+
+function abrirCandidatas(conTeclado) {
+  candidatasAbiertas = true;
+  el.anadirCosas.setAttribute('aria-expanded', 'true');
+  filasCandidata.clear();
+  el.listaCandidatas.innerHTML = '';
+  el.candidatas.hidden = false;
+  pintarPaginaGrupo(false);
+  el.candidatas.scrollTop = 0;
+  /* Con el teclado, el foco pasa al «+» de la primera (o a la nota, si no hay ninguna). */
+  if (conTeclado) (el.listaCandidatas.querySelector('.mas') || el.sinCandidatas).focus({ preventScroll: true });
+}
+
+function cerrarCandidatas(enfocar = false) {
+  if (!candidatasAbiertas) return;
+  candidatasAbiertas = false;
+  el.anadirCosas.setAttribute('aria-expanded', 'false');
+  if (enfocar || el.candidatas.contains(document.activeElement)) el.anadirCosas.focus({ preventScroll: true });
+  el.candidatas.hidden = true;
+  el.listaCandidatas.innerHTML = '';
+  filasCandidata.clear();
+}
+
+el.anadirCosas.addEventListener('click', ev => {
+  const ahora = performance.now();
+  if (ahora - ultimaAlternancia < GUARDA_DOBLE_TOQUE) return;
+  ultimaAlternancia = ahora;
+  if (candidatasAbiertas) cerrarCandidatas(true);
+  else abrirCandidatas(ev.detail === 0);
+});
+
+el.listaCandidatas.addEventListener('click', ev => {
+  const boton = ev.target.closest('[data-accion="anadir"]');
+  if (!boton || boton.closest('.saliendo') || !grupoAbierto) return;
+  if (performance.now() - ultimoMovimiento < GUARDA_DOBLE_TOQUE) return;
+  const cid = boton.closest('.fila').dataset.id;
+  ultimoMovimiento = performance.now();
+  almacen.moverCosa(listaId, cid, grupoAbierto).catch(() => toast('No se pudo añadir.'));
+});
+
+el.cosasGrupo.addEventListener('click', ev => {
+  const boton = ev.target.closest('[data-accion]');
+  if (!boton || boton.closest('.saliendo') || !grupoAbierto) return;
+  const li = boton.closest('.fila');
+  const c = cosasActuales.get(li.dataset.id);
+  if (!c) return;
+  if (boton.dataset.accion === 'alternar') { alternar(li, c); return; }
+  if (boton.dataset.accion !== 'quitar' || performance.now() - ultimoMovimiento < GUARDA_DOBLE_TOQUE) return;
+  /* «−»: la cosa vuelve a la lista, con «Deshacer» mientras se ve el aviso. */
+  const id = listaId;
+  const gid = grupoAbierto;
+  ultimoMovimiento = performance.now();
+  almacen.moverCosa(id, c.id, null).catch(() => toast('No se pudo quitar.'));
+  toast('Quitado del grupo', {
+    icono: true, accion: 'Deshacer',
+    alAccionar: () => { if (gruposActuales.has(gid)) almacen.moverCosa(id, c.id, gid).catch(() => toast('No se pudo deshacer.')); }
+  });
+});
+
+el.campoCosaGrupo.addEventListener('input', () => { el.enviarGrupo.disabled = !limpiar(el.campoCosaGrupo.value, 500); });
+
+/* Lo que se escribe en la página de un grupo entra en él. */
+el.formCosaGrupo.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const texto = limpiar(el.campoCosaGrupo.value, 500);
+  if (!texto || !listaId || !grupoAbierto) return;
+  el.campoCosaGrupo.value = '';
+  el.enviarGrupo.disabled = true;
+  el.campoCosaGrupo.focus();
+  try { await almacen.anadirCosa(listaId, texto, grupoAbierto); }
+  catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosaGrupo.value = texto; el.enviarGrupo.disabled = false; }
+});
+
+/* ---------- Editar un grupo de cosas (hoja): nombre y color ---------- */
+
+let colorGrupoElegido = null;
+
+function abrirHojaGrupo() {
+  const g = gruposActuales.get(grupoAbierto);
+  if (!g) return;
+  cerrarCandidatas();
+  el.nombreGrupo.value = g.nombre;
+  colorGrupoElegido = esColor(g.color) ? g.color : null;
+  el.coloresGrupo.innerHTML = '';
+  [{ color: null, nombre: 'Sin color (el de la lista)' }, ...PALETA].forEach(p => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = p.color ? 'hoja-muestra' : 'hoja-muestra sin-color';
+    if (p.color) b.style.setProperty('--muestra', p.color);
+    b.dataset.color = p.color || '';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-label', p.nombre);
+    b.setAttribute('aria-pressed', (colorGrupoElegido || '') .toUpperCase() === (p.color || '').toUpperCase() ? 'true' : 'false');
+    el.coloresGrupo.appendChild(b);
+  });
+  abrirPanel(el.hojaGrupo, '#titulo-hoja-grupo');
+}
+
+el.editarGrupo.addEventListener('click', abrirHojaGrupo);
+
+el.coloresGrupo.addEventListener('click', ev => {
+  const b = ev.target.closest('.hoja-muestra');
+  if (!b) return;
+  el.coloresGrupo.querySelectorAll('.hoja-muestra').forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  colorGrupoElegido = b.dataset.color || null;
+  pintarColor(colorGrupoElegido || (lista && lista.color) || '#2F6FED'); // Se ve cómo queda.
+});
+
+el.formEditarGrupo.addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const g = gruposActuales.get(grupoAbierto);
+  if (!g) return;
+  const nombre = limpiar(el.nombreGrupo.value, 60) || g.nombre;
+  try {
+    await almacen.actualizarGrupo(listaId, g.id, { nombre, color: colorGrupoElegido });
+    cerrarHoja();
+    toast('Guardado', { icono: true });
+  } catch (e) {
+    console.error(e);
+    toast('No se pudo guardar.');
+  }
 });
 
 el.volver.addEventListener('click', ev => { ev.preventDefault(); ir(RUTA_INICIO); });
@@ -811,12 +1339,21 @@ function cerrarHoja() {
   if (colorPrevisualizado && lista) { colorPrevisualizado = null; pintarColor(lista.color || '#2F6FED'); }
   colorPrevisualizado = null;
   if (abierta === el.hojaCuenta) el.abrirCuenta.focus({ preventScroll: true });
+  /* Al cerrar la hoja de un grupo sin guardar, vuelve su color (se veía el elegido). */
+  if (abierta === el.hojaGrupo && raiz.dataset.vista === 'grupo') {
+    pintarPaginaGrupo(false);
+    el.editarGrupo.focus({ preventScroll: true });
+  }
 }
 
 el.abrirAjustes.addEventListener('click', abrirHoja);
 el.abrirCuenta.addEventListener('click', abrirCuenta);
 document.querySelectorAll('[data-cerrar-hoja]').forEach(b => b.addEventListener('click', cerrarHoja));
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarHoja(); });
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if (document.querySelector('.hoja.abierta')) cerrarHoja();
+  else if (candidatasAbiertas) cerrarCandidatas(true);
+});
 
 el.ajusteColores.addEventListener('click', ev => {
   const b = ev.target.closest('.hoja-muestra');

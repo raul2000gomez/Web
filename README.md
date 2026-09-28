@@ -164,6 +164,12 @@ listas son las reglas de `firestore.rules`.
   Al crear o unirse a una lista se le pide solo su nombre.
 - Una lista es `listas/{id}` con su nombre, su tipo (`con` o `de`), color, quién la creó, los
   `uids` de sus miembros y sus datos (nombre y color). Las cosas van en `listas/{id}/cosas/{cosaId}`.
+- Dentro de una lista hay **grupos de cosas**, como en la app: `listas/{id}/grupos/{grupoId}` (nombre y
+  color, o ninguno) y, en cada cosa, `grupo` con el id del suyo (o null). En la lista, abajo, «Crear grupo de
+  cosas» (una píldora algo más pequeña sobre la de escribir); los grupos van arriba y su ojo despliega sus
+  cosas (lo abierto se recuerda en el dispositivo). Su página (`/con/ID#grupo/GRUPO`) tiene «Añadir cosas»
+  (las sueltas de la lista), la barra de escribir (lo apuntado entra en el grupo), «−» para sacar una cosa y
+  el lápiz para el nombre y el color. Al borrar un grupo sus cosas vuelven a la lista; todo con «Deshacer».
 - Una lista «con» es de dos personas exactamente: cada una ve el nombre de la otra (Ana ve
   «Cosas con Raúl» y Raúl ve «Cosas con Ana»), y una tercera con el enlace ve «Esta lista ya es
   de dos» y la invitación a crear un grupo en Cosas de. Una lista «de» no tiene límite y se llama

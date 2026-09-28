@@ -19,6 +19,7 @@ export function crearAlmacenLocal() {
 
   const oyentesListas = new Map();   // id -> Set(cb)
   const oyentesCosas = new Map();    // id -> Set(cb)
+  const oyentesGrupos = new Map();   // id -> Set(cb)
   const oyentesMias = new Set();
   const oyentesUsuario = new Set();
   const oyentesEstado = new Set();
@@ -36,8 +37,13 @@ export function crearAlmacenLocal() {
 
   function publica(lista) {
     if (!lista) return null;
-    const { cosas, ...resto } = lista;
+    const { cosas, grupos, ...resto } = lista;
     return { ...resto };
+  }
+
+  function gruposDe(id) {
+    const l = datos.listas[id];
+    return l ? Object.values(l.grupos || {}).sort((a, b) => (b.creada || 0) - (a.creada || 0)) : [];
   }
 
   function avisar() {
@@ -47,6 +53,7 @@ export function crearAlmacenLocal() {
       const cosas = l ? ordenar(Object.values(l.cosas || {})) : [];
       set.forEach(cb => cb(cosas));
     }
+    for (const [id, set] of oyentesGrupos) set.forEach(cb => cb(gruposDe(id)));
     oyentesMias.forEach(cb => cb(misListas()));
   }
 
@@ -122,13 +129,64 @@ export function crearAlmacenLocal() {
       return () => oyentesMias.delete(cb);
     },
 
-    async anadirCosa(id, texto) {
+    async anadirCosa(id, texto, grupo = null) {
       const l = datos.listas[id];
       if (!l) throw new Error('no-existe');
       const cid = idNuevo(14);
-      l.cosas[cid] = { id: cid, texto, hecha: false, creada: ahora(), hechaEn: null, por: uid };
+      l.cosas[cid] = { id: cid, texto, hecha: false, creada: ahora(), hechaEn: null, por: uid, grupo: grupo || null };
       guardar();
       return cid;
+    },
+
+    escucharGrupos(id, cb) {
+      if (!oyentesGrupos.has(id)) oyentesGrupos.set(id, new Set());
+      oyentesGrupos.get(id).add(cb);
+      cb(gruposDe(id));
+      return () => oyentesGrupos.get(id)?.delete(cb);
+    },
+
+    async crearGrupo(id, nombre) {
+      const l = datos.listas[id];
+      if (!l) throw new Error('no-existe');
+      const gid = idNuevo(14);
+      l.grupos = l.grupos || {};
+      l.grupos[gid] = { id: gid, nombre, color: null, creada: ahora(), por: uid };
+      guardar();
+      return gid;
+    },
+
+    async actualizarGrupo(id, gid, cambios) {
+      const g = datos.listas[id]?.grupos?.[gid];
+      if (!g) return;
+      if (typeof cambios.nombre === 'string' && cambios.nombre) g.nombre = cambios.nombre;
+      if (cambios.color === null || esColor(cambios.color)) g.color = cambios.color;
+      guardar();
+    },
+
+    async borrarGrupo(id, gid) {
+      const l = datos.listas[id];
+      if (!l || !l.grupos || !l.grupos[gid]) return [];
+      const dentro = Object.values(l.cosas || {}).filter(c => c.grupo === gid);
+      dentro.forEach(c => { c.grupo = null; });
+      delete l.grupos[gid];
+      guardar();
+      return dentro.map(c => c.id);
+    },
+
+    async restaurarGrupo(id, grupo, cids) {
+      const l = datos.listas[id];
+      if (!l) return;
+      l.grupos = l.grupos || {};
+      l.grupos[grupo.id] = { ...grupo };
+      (cids || []).forEach(cid => { if (l.cosas[cid]) l.cosas[cid].grupo = grupo.id; });
+      guardar();
+    },
+
+    async moverCosa(id, cid, grupo) {
+      const c = datos.listas[id]?.cosas?.[cid];
+      if (!c) return;
+      c.grupo = grupo || null;
+      guardar();
     },
 
     async restaurarCosa(id, cosa) {

@@ -5,7 +5,8 @@ rules_version = '2';
 //
 // Modelo:
 //   listas/{id}              { nombre, tipo: 'con' | 'de', color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } } }
-//   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por }
+//   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por, grupo }   (grupo: el id de uno de sus grupos, o null)
+//   listas/{id}/grupos/{gid} { nombre, color, creada, por }                   (grupos de cosas dentro de la lista)
 //   usuarios/{uid}           { nombre, color, actualizado }
 //   personales/{uid}/elementos/{id}   Las cosas de la app Cosas (cosas-app.netlify.app) de quien ha
 //                            entrado con Google, para tenerlas en todos sus dispositivos (app/nube.js):
@@ -47,6 +48,11 @@ service cloud.firestore {
     // «Cosas con» es solo para dos; «Cosas de» no tiene límite.
     function dentroDelLimite(datos) {
       return datos.tipo != 'con' || datos.uids.size() <= 2;
+    }
+
+    // El grupo de una cosa: ninguno (null o sin el campo) o el id de uno de los grupos de su lista.
+    function grupoDeCosaValido(d) {
+      return !('grupo' in d) || d.grupo == null || textoValido(d.grupo, 40);
     }
 
     // Unirse: la única diferencia con la lista anterior es que uno mismo aparece en «uids» y en «miembros».
@@ -91,13 +97,28 @@ service cloud.firestore {
 
         allow create: if esMiembro(listaPadre())
           && textoValido(request.resource.data.texto, 500)
-          && request.resource.data.hecha is bool;
+          && request.resource.data.hecha is bool
+          && grupoDeCosaValido(request.resource.data);
 
         allow update: if esMiembro(listaPadre())
           && textoValido(request.resource.data.texto, 500)
-          && request.resource.data.hecha is bool;
+          && request.resource.data.hecha is bool
+          && grupoDeCosaValido(request.resource.data);
 
         allow delete: if esMiembro(listaPadre());
+      }
+
+      // Los grupos de cosas de la lista: como sus cosas, solo para los miembros.
+      match /grupos/{gid} {
+        function listaDelGrupo() {
+          return get(/databases/$(database)/documents/listas/$(id)).data;
+        }
+
+        allow read, delete: if esMiembro(listaDelGrupo());
+
+        allow create, update: if esMiembro(listaDelGrupo())
+          && textoValido(request.resource.data.nombre, 60)
+          && (request.resource.data.color == null || colorValido(request.resource.data.color));
       }
     }
 

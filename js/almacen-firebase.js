@@ -58,6 +58,7 @@ export async function crearAlmacenFirebase(config) {
 
   function ref(id) { return fs.doc(db, 'listas', id); }
   function refCosas(id) { return fs.collection(db, 'listas', id, 'cosas'); }
+  function refGrupos(id) { return fs.collection(db, 'listas', id, 'grupos'); }
   function uid() {
     const u = autenticacion.currentUser || usuarioActual;
     return u ? u.uid : null;
@@ -81,6 +82,8 @@ export async function crearAlmacenFirebase(config) {
   function datosCosa(snap) {
     return { id: snap.id, ...snap.data({ serverTimestamps: 'estimate' }) };
   }
+
+  const milis = v => (v && typeof v.toMillis === 'function') ? v.toMillis() : 0;
 
   async function unirse(id, perfil) {
     const u = uid();
@@ -227,9 +230,55 @@ export async function crearAlmacenFirebase(config) {
       }, e => { console.warn('Mis listas', e); cb([]); });
     },
 
-    async anadirCosa(id, texto) {
-      const d = await fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: uid() });
+    /* Con «grupo», la cosa nace dentro de ese grupo de la lista. */
+    async anadirCosa(id, texto, grupo = null) {
+      const d = await fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: uid(), grupo: grupo || null });
       return d.id;
+    },
+
+    /* ---------- Grupos de cosas dentro de una lista (listas/{id}/grupos) ---------- */
+
+    escucharGrupos(id, cb) {
+      return fs.onSnapshot(refGrupos(id), snap => {
+        cb(snap.docs.map(datosCosa).sort((a, b) => milis(b.creada) - milis(a.creada)));
+      }, e => { console.warn('Grupos', e); cb([]); });
+    },
+
+    async crearGrupo(id, nombre) {
+      const d = await fs.addDoc(refGrupos(id), { nombre, color: null, creada: fs.serverTimestamp(), por: uid() });
+      return d.id;
+    },
+
+    async actualizarGrupo(id, gid, cambios) {
+      const c = {};
+      if (typeof cambios.nombre === 'string' && cambios.nombre) c.nombre = cambios.nombre;
+      if (cambios.color === null || esColor(cambios.color)) c.color = cambios.color;
+      if (Object.keys(c).length) await fs.updateDoc(fs.doc(refGrupos(id), gid), c);
+    },
+
+    /* Borra el grupo; sus cosas vuelven a la lista. Devuelve cuáles eran, para poder deshacerlo. */
+    async borrarGrupo(id, gid) {
+      const dentro = await fs.getDocs(fs.query(refCosas(id), fs.where('grupo', '==', gid)));
+      const lote = fs.writeBatch(db);
+      dentro.forEach(d => lote.update(d.ref, { grupo: null }));
+      lote.delete(fs.doc(refGrupos(id), gid));
+      await lote.commit();
+      return dentro.docs.map(d => d.id);
+    },
+
+    async restaurarGrupo(id, grupo, cids) {
+      const lote = fs.writeBatch(db);
+      lote.set(fs.doc(refGrupos(id), grupo.id), {
+        nombre: grupo.nombre, color: esColor(grupo.color) ? grupo.color : null,
+        creada: grupo.creada || fs.serverTimestamp(), por: grupo.por || uid()
+      });
+      (cids || []).forEach(cid => lote.update(fs.doc(refCosas(id), cid), { grupo: grupo.id }));
+      await lote.commit();
+    },
+
+    /* Mete una cosa en un grupo (o la saca, con null). */
+    async moverCosa(id, cid, grupo) {
+      await fs.updateDoc(fs.doc(refCosas(id), cid), { grupo: grupo || null });
     },
 
     async restaurarCosa(id, cosa) {
@@ -269,9 +318,10 @@ export async function crearAlmacenFirebase(config) {
     },
 
     async borrarLista(id) {
-      const cosas = await fs.getDocs(refCosas(id));
+      const [cosas, grupos] = await Promise.all([fs.getDocs(refCosas(id)), fs.getDocs(refGrupos(id))]);
       const lote = fs.writeBatch(db);
       cosas.forEach(d => lote.delete(d.ref));
+      grupos.forEach(d => lote.delete(d.ref));
       lote.delete(ref(id));
       await lote.commit();
       olvidarId(id);
