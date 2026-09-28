@@ -815,6 +815,26 @@ main { display: block; }
 
 .escena-voz { --fondo: #EF5B5B; }
 
+/* Deslizar a los lados: dos píldoras con su flecha. */
+.escena-gestos { --fondo: #1BA39C; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+.gesto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  background: var(--superficie-t);
+  box-shadow: inset 0 0 0 1px var(--filete-t);
+  font-weight: 600;
+}
+
+.gesto .icono { width: 16px; height: 16px; stroke-width: 2.4; }
+
+/* «Convertir en aplicación» y «Compartir aplicación», una sobre otra, como en los ajustes de la app. */
+.escena-botones { display: grid; gap: 8px; }
+
 .ondas {
   display: flex;
   align-items: center;
@@ -978,6 +998,19 @@ main { display: block; }
 .con-anuncio .titulo-seccion { max-width: none; }
 
 .con-anuncio .entradilla { color: rgba(246, 243, 236, .72); }
+
+/* Lo que tiene cada una, en una lista corta bajo la entradilla (como bajo el título de la portada). */
+.anuncio-notas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  margin-top: 22px;
+}
+
+@media (max-width: 560px) {
+  .anuncio-notas { grid-template-columns: minmax(0, 1fr); }
+}
+.con-anuncio .anuncio-notas { color: rgba(246, 243, 236, .82); }
+.anuncio-de .anuncio-notas { color: var(--tinta-2); }
 
 .con-anuncio .boton-primario { background: #F6F3EC; color: #16181D; }
 .con-anuncio .boton-primario:hover { background: var(--azul); color: #fff; }
