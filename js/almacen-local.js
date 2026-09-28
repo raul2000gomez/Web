@@ -138,6 +138,10 @@ export function crearAlmacenLocal() {
       return cid;
     },
 
+    /* Sin nube no hay nadie más: nunca hay novedades. */
+    escucharVistos(cb) { cb({}, false); return () => {}; },
+    marcarVisto() { /* Nada. */ },
+
     escucharGrupos(id, cb) {
       if (!oyentesGrupos.has(id)) oyentesGrupos.set(id, new Set());
       oyentesGrupos.get(id).add(cb);

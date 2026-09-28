@@ -170,6 +170,12 @@ listas son las reglas de `firestore.rules`.
   cosas (lo abierto se recuerda en el dispositivo). Su página (`/con/ID#grupo/GRUPO`) tiene «Añadir cosas»
   (las sueltas de la lista), la barra de escribir (lo apuntado entra en el grupo), «−» para sacar una cosa y
   el lápiz para el nombre y el color. Al borrar un grupo sus cosas vuelven a la lista; todo con «Deshacer».
+- **Novedades (el punto verde)**: al apuntar una cosa, la lista guarda `ultima` (cuándo, quién y en qué
+  grupo). Lo que cada uno ha visto va en `usuarios/{uid}.vistos` (por lista y por «lista~grupo»; `_desde`
+  es cuándo se empezó a contar, y lo de antes cuenta como visto). Si otra persona ha apuntado algo que aún
+  no has visto, sale un punto verde junto al nombre de la lista (y en la app, en el icono de Cosas con o
+  Cosas de) y, dentro, junto al grupo donde está. Se va al verlo: al estar en la lista, al abrir el grupo o
+  al desplegarlo con el ojo. Al estar en la cuenta, vale para todos tus dispositivos.
 - Una lista «con» es de dos personas exactamente: cada una ve el nombre de la otra (Ana ve
   «Cosas con Raúl» y Raúl ve «Cosas con Ana»), y una tercera con el enlace ve «Esta lista ya es
   de dos» y la invitación a crear un grupo en Cosas de. Una lista «de» no tiene límite y se llama

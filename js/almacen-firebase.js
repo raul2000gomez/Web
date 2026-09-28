@@ -167,7 +167,11 @@ export async function crearAlmacenFirebase(config) {
       if (!u) return null;
       try {
         const snap = await fs.getDoc(fs.doc(db, 'usuarios', u));
-        if (snap.exists()) { const p = snap.data(); local.guardar('cosascon:perfil', p); return p; }
+        if (snap.exists() && snap.data().nombre) {
+          const { nombre, color } = snap.data();
+          local.guardar('cosascon:perfil', { nombre, color });
+          return { nombre, color };
+        }
       } catch (e) { /* Sin conexión y sin caché: se pedirá el nombre. */ }
       return null;
     },
@@ -230,10 +234,33 @@ export async function crearAlmacenFirebase(config) {
       }, e => { console.warn('Mis listas', e); cb([]); });
     },
 
-    /* Con «grupo», la cosa nace dentro de ese grupo de la lista. */
+    /* Con «grupo», la cosa nace dentro de ese grupo de la lista. La lista apunta la última cosa nueva (cuándo
+       y de quién): así sus miembros saben si hay novedades sin leer sus cosas (el punto verde). */
     async anadirCosa(id, texto, grupo = null) {
-      const d = await fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: uid(), grupo: grupo || null });
-      return d.id;
+      const yo = uid();
+      const alta = fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: yo, grupo: grupo || null });
+      fs.updateDoc(ref(id), { ultima: { en: fs.serverTimestamp(), por: yo, grupo: grupo || null } }).catch(e => console.warn('Última cosa', e));
+      return (await alta).id;
+    },
+
+    /* Lo que has visto de cada lista y de cada grupo de cosas (usuarios/{uid}.vistos: clave → cuándo; la clave
+       es el id de la lista o «lista~grupo»), para el punto verde. «_desde» es cuándo se empezó a llevar la
+       cuenta: lo de antes cuenta como visto. cb(vistos, listos): listos cuando ya se sabe qué hay. */
+    escucharVistos(cb) {
+      const u = uid();
+      if (!u) { cb({}, false); return () => {}; }
+      return fs.onSnapshot(fs.doc(db, 'usuarios', u), snap => {
+        const vistos = (snap.exists() && snap.data({ serverTimestamps: 'estimate' }).vistos) || {};
+        if (!vistos._desde && !snap.metadata.fromCache) almacen.marcarVisto('_desde');
+        cb(vistos, !!vistos._desde);
+      }, e => { console.warn('Vistos', e); cb({}, false); });
+    },
+
+    marcarVisto(clave) {
+      const u = uid();
+      if (!u) return;
+      fs.setDoc(fs.doc(db, 'usuarios', u), { vistos: { [clave]: fs.serverTimestamp() } }, { merge: true })
+        .catch(e => console.warn('Visto', e));
     },
 
     /* ---------- Grupos de cosas dentro de una lista (listas/{id}/grupos) ---------- */

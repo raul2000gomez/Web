@@ -4,7 +4,7 @@
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
 import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos, ordenar } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
-import { crearAlmacenLocal } from './almacen-local.js?v=2'; // Con versión: el de antes no tiene grupos.
+import { crearAlmacenLocal } from './almacen-local.js?v=3'; // Con versión: el de antes no tiene grupos ni novedades.
 
 const $ = s => document.querySelector(s);
 const raiz = document.documentElement;
@@ -71,7 +71,10 @@ const filasMiembro = new Map(); // id -> <li> de la página del grupo
 const filasCandidata = new Map(); // id -> <li> del desplegable «Añadir cosas»
 let candidatasAbiertas = false;
 let ultimaAlternancia = -Infinity; // Último toque en «Añadir cosas».
-let pararLista = null, pararCosas = null, pararGrupos = null, pararMias = null;
+let pararLista = null, pararCosas = null, pararGrupos = null, pararMias = null, pararVistos = null;
+let misListas = [];            // Las de este apartado, tal como llegaron (para repintarlas con las novedades).
+let vistos = {};               // Lo que has visto de cada lista y grupo (clave → cuándo); ver novedades.
+let vistosListos = false;
 let colorPrevisualizado = null;
 
 /* El dominio de la app también sirve estas páginas (su netlify.toml las trae de cosas.info): así
@@ -126,7 +129,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js?v=3'); // Con versión: hacen falta los grupos.
+      const m = await import('./almacen-firebase.js?v=4'); // Con versión: hacen falta los grupos y las novedades.
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -139,6 +142,7 @@ async function arrancar() {
     const cambio = !usuario || usuario.uid !== u.uid;
     usuario = u;
     pintarCuenta();
+    if (cambio) escucharVistos();
     if (cambio && raiz.dataset.vista === 'inicio') escucharMias();
   });
 
@@ -363,40 +367,119 @@ function datosFila(l) {
 function escucharMias() {
   if (pararMias) { pararMias(); pararMias = null; }
   pararMias = almacen.escucharMisListas(todas => {
-    const listas = todas.filter(l => tipoDe(l) === tipoPagina);
-    el.vacioInicio.hidden = listas.length > 0;
-    el.misListas.innerHTML = '';
-    listas.forEach(l => {
-      const { nombre, color, detalle } = datosFila(l);
-      const fondo = esColor(color) ? color : '#F1F3F5';
-      const li = document.createElement('li');
-      li.className = 'conexion';
-      if (pintadas.size && !pintadas.has(l.id)) li.classList.add('nueva');
-      const a = document.createElement('a');
-      a.className = 'enlace-conexion';
-      a.href = `${BASE}/${tipoDe(l)}/${l.id}`;
-      a.innerHTML = `<span class="disco" aria-hidden="true"></span><span class="conexion-texto"><span class="conexion-nombre"></span><span class="conexion-detalle"></span></span>${ICONO_FLECHA}`;
-      const disco = a.querySelector('.disco');
-      disco.textContent = inicial(nombre);
-      disco.style.setProperty('--disco', fondo);
-      disco.style.setProperty('--disco-tinta', tono(fondo) === 'oscuro' ? '#FFFFFF' : '#0A0A0A');
-      a.querySelector('.conexion-nombre').textContent = nombre;
-      const det = a.querySelector('.conexion-detalle');
-      det.textContent = detalle;
-      det.hidden = !detalle;
-      a.setAttribute('aria-label', detalle ? `${tituloDe(l, usuario.uid)}. ${detalle}` : tituloDe(l, usuario.uid));
-      a.addEventListener('click', ev => {
-        if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
-        ev.preventDefault();
-        ir(a.getAttribute('href'));
-      });
-      li.appendChild(a);
-      el.misListas.appendChild(li);
-    });
-    pintadas.clear();
-    listas.forEach(l => pintadas.add(l.id));
+    misListas = todas.filter(l => tipoDe(l) === tipoPagina);
+    pintarMias();
   });
 }
+
+function pintarMias() {
+  if (raiz.dataset.vista !== 'inicio') return;
+  const listas = misListas;
+  el.vacioInicio.hidden = listas.length > 0;
+  el.misListas.innerHTML = '';
+  listas.forEach(l => {
+    const { nombre, color, detalle } = datosFila(l);
+    const fondo = esColor(color) ? color : '#F1F3F5';
+    const li = document.createElement('li');
+    li.className = 'conexion';
+    if (pintadas.size && !pintadas.has(l.id)) li.classList.add('nueva');
+    const a = document.createElement('a');
+    a.className = 'enlace-conexion';
+    a.href = `${BASE}/${tipoDe(l)}/${l.id}`;
+    a.innerHTML = `<span class="disco" aria-hidden="true"></span><span class="conexion-texto"><span class="conexion-nombre"><span class="conexion-titulo"></span><span class="novedad" hidden></span></span><span class="conexion-detalle"></span></span>${ICONO_FLECHA}`;
+    const disco = a.querySelector('.disco');
+    disco.textContent = inicial(nombre);
+    disco.style.setProperty('--disco', fondo);
+    disco.style.setProperty('--disco-tinta', tono(fondo) === 'oscuro' ? '#FFFFFF' : '#0A0A0A');
+    a.querySelector('.conexion-titulo').textContent = nombre;
+    const nueva = hayNovedad(l);
+    a.querySelector('.novedad').hidden = !nueva;
+    const det = a.querySelector('.conexion-detalle');
+    det.textContent = detalle;
+    det.hidden = !detalle;
+    a.setAttribute('aria-label', [tituloDe(l, usuario.uid), detalle, nueva ? 'Hay cosas nuevas' : ''].filter(Boolean).join('. '));
+    a.addEventListener('click', ev => {
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      ev.preventDefault();
+      ir(a.getAttribute('href'));
+    });
+    li.appendChild(a);
+    el.misListas.appendChild(li);
+  });
+  pintadas.clear();
+  listas.forEach(l => pintadas.add(l.id));
+}
+
+/* ---------- Novedades: el punto verde ----------
+   Cuando otra persona añade una cosa a una de tus listas, sale un punto verde junto a su nombre (y, en la
+   app, en el icono de Cosas con o Cosas de); dentro de la lista, junto al grupo de cosas donde está. Se va
+   al verlo: al entrar en la lista, o en el grupo (o al desplegarlo con el ojo). Lo visto se guarda en tu
+   cuenta (usuarios/{uid}.vistos), así que vale para todos tus dispositivos. */
+
+const ms = v => (v && typeof v.toMillis === 'function') ? v.toMillis() : (typeof v === 'number' ? v : 0);
+
+function escucharVistos() {
+  if (pararVistos) { pararVistos(); pararVistos = null; }
+  vistos = {};
+  vistosListos = false;
+  if (!almacen || !usuario) return;
+  pararVistos = almacen.escucharVistos((v, listos) => {
+    vistos = v;
+    vistosListos = listos;
+    pintarMias();
+    pintarNovedadesDeGrupos();
+    marcarLoVisto();
+  });
+}
+
+/* Desde cuándo es nuevo lo de otros en esa lista (clave: la lista, o «lista~grupo»): lo último que viste ahí,
+   cuándo entraste en la lista y cuándo se empezó a llevar la cuenta. */
+function vistoHasta(l, clave) {
+  const yo = l && l.miembros && usuario ? l.miembros[usuario.uid] : null;
+  return Math.max(ms(vistos[clave]), ms(vistos._desde), ms(yo && yo.desde));
+}
+
+function hayNovedad(l) {
+  const u = l && l.ultima;
+  return !!(vistosListos && u && u.por && usuario && u.por !== usuario.uid && ms(u.en) > vistoHasta(l, l.id));
+}
+
+function hayNovedadEnGrupo(gid) {
+  if (!vistosListos || !lista || !usuario) return false;
+  const desde = vistoHasta(lista, `${listaId}~${gid}`);
+  return cosasDe(gid).some(c => c.por && c.por !== usuario.uid && ms(c.creada) > desde);
+}
+
+function pintarNovedadesDeGrupos() {
+  filasGrupo.forEach((li, gid) => { const g = gruposActuales.get(gid); if (g && !li.classList.contains('saliendo')) pintarFilaGrupo(li, g); });
+}
+
+const marcados = new Map(); // Clave → cuándo se marcó: mientras llega la respuesta, no se repite.
+let temporizadorVisto = 0;
+
+function marcar(clave) {
+  const espera = 3000 - (Date.now() - (marcados.get(clave) || 0));
+  if (espera > 0) {
+    clearTimeout(temporizadorVisto);
+    temporizadorVisto = setTimeout(marcarLoVisto, espera + 50);
+    return;
+  }
+  marcados.set(clave, Date.now());
+  almacen.marcarVisto(clave);
+}
+
+/* Lo que se tiene delante cuenta como visto: la lista (al estar en ella o en uno de sus grupos), el grupo
+   abierto y los desplegados con el ojo. Solo con la página a la vista. */
+function marcarLoVisto() {
+  if (!listaId || !lista || document.visibilityState !== 'visible') return;
+  const vista = raiz.dataset.vista;
+  if (vista !== 'lista' && vista !== 'grupo') return;
+  if (hayNovedad(lista)) marcar(listaId);
+  if (vista === 'grupo' && grupoAbierto && hayNovedadEnGrupo(grupoAbierto)) marcar(`${listaId}~${grupoAbierto}`);
+  if (vista === 'lista') abiertos.forEach(gid => { if (gruposActuales.has(gid) && hayNovedadEnGrupo(gid)) marcar(`${listaId}~${gid}`); });
+}
+
+document.addEventListener('visibilitychange', marcarLoVisto);
 
 /* ---------- Tu cuenta (hoja) ---------- */
 
@@ -576,6 +659,7 @@ function abrirLista(id, datos) {
     if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast('Ya no estás en esa lista.'); return; }
     lista = l;
     pintarLista(l);
+    marcarLoVisto();
   });
   pararCosas = almacen.escucharCosas(id, cosas => {
     cosasActuales = new Map(cosas.map(c => [c.id, c]));
@@ -674,6 +758,7 @@ function pintar() {
   if (!listaId) return;
   pintarNivel();
   if (raiz.dataset.vista === 'grupo') pintarPaginaGrupo();
+  marcarLoVisto();
 }
 
 function botonFinal(accion) {
@@ -733,7 +818,7 @@ function crearFilaGrupo(g) {
   contadorPliegues += 1;
   const pliegue = `pliegue-${contadorPliegues}`;
   li.innerHTML = `<div class="fila fila-grupo"><button type="button" class="ojo" data-accion="ver" aria-controls="${pliegue}">${ICONO_OJO}</button>`
-    + '<p class="fila-texto"><a class="enlace-grupo" href="#"></a></p>'
+    + '<p class="fila-texto"><a class="enlace-grupo" href="#"><span class="nombre-grupo"></span><span class="novedad" hidden></span></a></p>'
     + `<button type="button" class="borrar" data-accion="borrar-grupo" aria-label="Eliminar grupo">${ICONO_BORRAR}</button></div>`
     + `<div class="pliegue" id="${pliegue}" hidden><ul class="anidada" role="list"></ul><p class="nota grupo-vacio" hidden>Este grupo está vacío.</p></div>`;
   li.querySelector('.pliegue').hidden = !abiertos.has(g.id);
@@ -743,8 +828,12 @@ function crearFilaGrupo(g) {
 
 function pintarFilaGrupo(li, g) {
   const enlace = li.querySelector('.enlace-grupo');
-  if (enlace.textContent !== g.nombre) enlace.textContent = g.nombre;
+  const nombre = li.querySelector('.nombre-grupo');
+  if (nombre.textContent !== g.nombre) nombre.textContent = g.nombre;
   enlace.href = `${RUTA_INICIO}${listaId}#grupo/${g.id}`;
+  const nueva = hayNovedadEnGrupo(g.id);
+  li.querySelector('.novedad').hidden = !nueva;
+  enlace.setAttribute('aria-label', nueva ? `${g.nombre}. Hay cosas nuevas` : g.nombre);
   const color = esColor(g.color) ? g.color : null;
   li.querySelector('.ojo').classList.toggle('con-color', !!color);
   li.style.setProperty('--color-grupo', color || 'transparent');
@@ -879,6 +968,7 @@ function alternarOjo(gid) {
   guardarAbiertos();
   pintarOjo(li.querySelector('.ojo'), abrir);
   plegar(li.querySelector('.pliegue'), abrir);
+  marcarLoVisto(); // Desplegado, lo nuevo del grupo ya se ve.
 }
 
 async function alternar(li, c) {
@@ -1045,6 +1135,7 @@ function mostrarLaLista() {
   /* De vuelta de un grupo, la lista enseña su fila. */
   const fila = venia && filasGrupo.get(venia);
   if (fila) fila.scrollIntoView({ block: 'center' });
+  marcarLoVisto();
 }
 
 function mostrarGrupo(gid) {
@@ -1060,6 +1151,7 @@ function mostrarGrupo(gid) {
   mostrar('grupo');
   pintarPaginaGrupo(false);
   el.tituloGrupo.focus({ preventScroll: true });
+  marcarLoVisto();
 }
 
 function colorDelGrupo(g) {
