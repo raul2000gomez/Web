@@ -182,6 +182,10 @@ listas son las reglas de `firestore.rules`.
   igual para todos: «Cosas de viaje».
 - Cualquiera con el enlace (`cosas.info/con/ID` o `cosas.info/de/ID`) puede unirse; solo los miembros
   ven y tocan las cosas; solo quien creó la lista puede borrarla para todos.
+- De la gente, cada miembro solo toca lo suyo (su nombre, irse). **Quien creó la lista puede eliminar a
+  otras personas**: en los ajustes de la lista, «Gente de la lista» (o «del grupo») con «Eliminar» en cada
+  una (se confirma tocando dos veces). Quien sale deja de verla al momento; con el enlace podría volver a
+  entrar. Las reglas (`cambioDeGenteValido`) no dejan a nadie más sacar ni meter a otros.
 - **Continuar con Google** enlaza la sesión anónima con la cuenta de Google: el mismo uid, las
   mismas listas, ahora también en otros dispositivos. Si ese Google ya tenía cuenta, se entra con
   ella y se vuelve a unir a las listas que había en este navegador.

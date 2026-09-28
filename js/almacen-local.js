@@ -232,6 +232,14 @@ export function crearAlmacenLocal() {
       guardar();
     },
 
+    async sacar(id, otro) {
+      const l = datos.listas[id];
+      if (!l || l.creadaPor !== uid) return;
+      l.uids = l.uids.filter(u => u !== otro);
+      delete l.miembros[otro];
+      guardar();
+    },
+
     async salir(id) {
       const l = datos.listas[id];
       if (!l) return;

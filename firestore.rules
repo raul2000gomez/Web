@@ -17,7 +17,8 @@ rules_version = '2';
 //
 // Cualquiera que tenga el enlace (y esté identificado, aunque sea de forma anónima) puede
 // leer una lista y unirse a ella añadiéndose a sí mismo. Solo los miembros pueden ver y
-// tocar sus cosas. Solo quien la creó puede borrarla.
+// tocar sus cosas. De la gente, cada miembro solo toca lo suyo (su nombre, irse); quien creó
+// la lista puede además sacar a otros. Solo quien la creó puede borrarla.
 //
 // «Cosas con» es para dos personas exactamente: una lista de tipo «con» nunca puede tener
 // más de dos miembros (ni al unirse alguien, ni al cambiar el tipo de una lista mayor).
@@ -67,6 +68,18 @@ service cloud.firestore {
         && despues.miembros.diff(antes.miembros).affectedKeys().hasOnly([request.auth.uid]);
     }
 
+    // Lo que un miembro puede cambiar de la gente de la lista: sus propios datos, irse él (sale de «uids» y de
+    // «miembros») y, si es quien la creó, sacar a otros. Meter a alguien nunca: eso es unirse, cada uno a sí mismo.
+    function cambioDeGenteValido() {
+      let antes = resource.data;
+      let despues = request.resource.data;
+      let yo = request.auth.uid;
+      let tocados = despues.miembros.diff(antes.miembros);
+      return (despues.uids == antes.uids && tocados.affectedKeys().hasOnly([yo]))
+        || (despues.uids == antes.uids.removeAll([yo]) && tocados.affectedKeys().hasOnly([yo]))
+        || (yo == antes.creadaPor && antes.uids.hasAll(despues.uids) && tocados.addedKeys().size() == 0);
+    }
+
     match /listas/{id} {
       allow get: if identificado();
       allow list: if esMiembro(resource.data);
@@ -85,7 +98,7 @@ service cloud.firestore {
         && dentroDelLimite(request.resource.data)
         && colorValido(request.resource.data.color)
         && request.resource.data.creadaPor == resource.data.creadaPor
-        && (esMiembro(resource.data) || seUneASiMismo());
+        && (seUneASiMismo() || (esMiembro(resource.data) && cambioDeGenteValido()));
 
       allow delete: if identificado() && resource.data.creadaPor == request.auth.uid;
 

@@ -44,7 +44,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <!-- GitHub Pages guarda CSS y JS en caché 10 minutos: al cambiar con.css o con.js, sube el ?v=
        (aquí y en de/index.html) para que nadie mezcle una página nueva con archivos viejos. -->
-  <link rel="stylesheet" href="../css/con.css?v=7">
+  <link rel="stylesheet" href="../css/con.css?v=8">
 </head>
 <body>
 
@@ -242,6 +242,11 @@
         <div class="hoja-muestras" id="ajuste-colores" role="radiogroup" aria-labelledby="etiqueta-color"></div>
         <label class="etiqueta" for="ajuste-mi-nombre">Tu nombre</label>
         <input class="campo-texto" id="ajuste-mi-nombre" type="text" maxlength="40" autocomplete="given-name" autocapitalize="words" placeholder="Tu nombre">
+        <!-- Solo para quien creó la lista: las demás personas, cada una con «Eliminar». -->
+        <div id="personas" hidden>
+          <p class="etiqueta" id="etiqueta-personas">Gente de la lista</p>
+          <ul class="personas" id="lista-personas" role="list" aria-labelledby="etiqueta-personas"></ul>
+        </div>
         <div class="hoja-acciones">
           <button type="submit" class="boton-ancho principal" id="guardar-ajustes">Guardar</button>
           <button type="button" class="boton-ancho" id="copiar-enlace">
@@ -282,6 +287,6 @@
   <noscript><p style="padding:24px;text-align:center">Cosas con necesita JavaScript para funcionar.</p></noscript>
 
   <script src="../firebase-config.js"></script>
-  <script type="module" src="../js/con.js?v=10"></script>
+  <script type="module" src="../js/con.js?v=11"></script>
 </body>
 </html>

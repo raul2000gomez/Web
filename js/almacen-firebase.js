@@ -338,6 +338,11 @@ export async function crearAlmacenFirebase(config) {
       await fs.updateDoc(ref(id), { [`miembros.${u}.nombre`]: perfil.nombre, [`miembros.${u}.color`]: perfil.color });
     },
 
+    /* Solo quien creó la lista (lo exigen las reglas): saca a otra persona de ella. */
+    async sacar(id, otro) {
+      await fs.updateDoc(ref(id), { uids: fs.arrayRemove(otro), [`miembros.${otro}`]: fs.deleteField() });
+    },
+
     async salir(id) {
       const u = uid();
       await fs.updateDoc(ref(id), { uids: fs.arrayRemove(u), [`miembros.${u}`]: fs.deleteField() });

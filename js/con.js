@@ -4,7 +4,7 @@
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
 import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos, ordenar } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
-import { crearAlmacenLocal } from './almacen-local.js?v=3'; // Con versión: el de antes no tiene grupos ni novedades.
+import { crearAlmacenLocal } from './almacen-local.js?v=4'; // Con versión: el de antes no tiene grupos, novedades ni sacar a gente.
 
 const $ = s => document.querySelector(s);
 const raiz = document.documentElement;
@@ -29,6 +29,7 @@ const el = {
   hoja: $('#hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
   ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
+  personas: $('#personas'), etiquetaPersonas: $('#etiqueta-personas'), listaPersonas: $('#lista-personas'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
   toast: $('#toast'),
   temaMeta: document.querySelectorAll('meta[name="theme-color"]')
@@ -129,7 +130,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js?v=4'); // Con versión: hacen falta los grupos y las novedades.
+      const m = await import('./almacen-firebase.js?v=5'); // Con versión: hacen falta los grupos, las novedades y sacar a gente.
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -656,7 +657,7 @@ function abrirLista(id, datos) {
 
   pararLista = almacen.escucharLista(id, l => {
     if (!l) { cerrarLista(); document.title = TEXTOS[tipoPagina].titulo; mostrar('no-existe'); return; }
-    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast('Ya no estás en esa lista.'); return; }
+    if (!(l.uids || []).includes(usuario.uid)) { cerrarLista(); ir(RUTA_INICIO); toast(tipoPagina === 'de' ? 'Ya no estás en ese grupo.' : 'Ya no estás en esa lista.'); return; }
     lista = l;
     pintarLista(l);
     marcarLoVisto();
@@ -739,6 +740,7 @@ function pintarLista(l) {
   });
 
   el.borrarLista.hidden = l.creadaPor !== usuario.uid;
+  if (el.hoja.classList.contains('abierta')) pintarPersonas();
   /* Con las dos personas dentro, «Cosas con» ya no admite a nadie: sin invitar. */
   el.invitar.hidden = esDeDos(l);
   /* Las cosas llevan el avatar de quien las añadió: si cambia un nombre o color, se repintan. */
@@ -1382,6 +1384,7 @@ function abrirHoja() {
   el.ajusteNombre.placeholder = TEXTOS[tipo].ejemplo;
   el.ajusteNombre.value = lista.nombre || '';
   el.ajusteMiNombre.value = perfil ? perfil.nombre : '';
+  pintarPersonas();
   el.ajusteColores.innerHTML = '';
   PALETA.forEach(p => {
     const b = document.createElement('button');
@@ -1407,6 +1410,43 @@ function abrirHoja() {
     el.hojaNota.append('Cualquiera con el enlace puede entrar en la lista: ', code);
   }
   abrirPanel(el.hoja, '#titulo-hoja');
+}
+
+/* La gente de la lista, en sus ajustes, solo para quien la creó: las demás personas, cada una con «Eliminar»
+   (se confirma tocando dos veces). Quien sale deja de ver la lista al momento; con el enlace podría volver. */
+function pintarPersonas() {
+  const otros = lista && lista.creadaPor === usuario.uid ? (lista.uids || []).filter(u => u !== usuario.uid) : [];
+  el.personas.hidden = otros.length === 0;
+  el.etiquetaPersonas.textContent = tipoDe(lista) === 'de' ? 'Gente del grupo' : 'Gente de la lista';
+  el.listaPersonas.innerHTML = '';
+  otros.forEach(otro => {
+    const m = (lista.miembros || {})[otro] || {};
+    const nombre = limpiar(m.nombre, 40) || 'Alguien';
+    const li = document.createElement('li');
+    li.className = 'persona';
+    li.innerHTML = '<span class="avatar" aria-hidden="true"></span><span class="persona-nombre"></span><button type="button" class="boton-eliminar"></button>';
+    const av = li.querySelector('.avatar');
+    av.textContent = inicial(nombre);
+    av.style.setProperty('--avatar', m.color || '#6C757D');
+    av.style.setProperty('--avatar-tinta', tono(m.color || '#6C757D') === 'oscuro' ? '#fff' : '#0A0A0A');
+    li.querySelector('.persona-nombre').textContent = nombre;
+    const boton = li.querySelector('.boton-eliminar');
+    boton.textContent = 'Eliminar';
+    boton.setAttribute('aria-label', `Eliminar a ${nombre}`);
+    boton.addEventListener('click', () => confirmarDosVeces(boton, 'Eliminar', async () => {
+      if (!listaId) return;
+      boton.disabled = true;
+      try {
+        await almacen.sacar(listaId, otro);
+        toast(`${nombre} ya no está en ${tipoDe(lista) === 'de' ? 'el grupo' : 'la lista'}`, { icono: true });
+      } catch (e) {
+        console.error(e);
+        boton.disabled = false;
+        toast('No se pudo eliminar.');
+      }
+    }, '¿Seguro?'));
+    el.listaPersonas.appendChild(li);
+  });
 }
 
 function abrirCuenta() {
@@ -1482,7 +1522,7 @@ el.formAjustes.addEventListener('submit', async ev => {
 });
 
 /* Las acciones delicadas se confirman tocando dos veces el mismo botón: sin diálogos del navegador. */
-function confirmarDosVeces(boton, textoOriginal, alConfirmar) {
+function confirmarDosVeces(boton, textoOriginal, alConfirmar, pregunta = '¿Seguro? Toca otra vez') {
   if (boton.dataset.confirmando) {
     delete boton.dataset.confirmando;
     boton.textContent = textoOriginal;
@@ -1490,7 +1530,7 @@ function confirmarDosVeces(boton, textoOriginal, alConfirmar) {
     return;
   }
   boton.dataset.confirmando = '1';
-  boton.textContent = '¿Seguro? Toca otra vez';
+  boton.textContent = pregunta;
   setTimeout(() => {
     if (boton.dataset.confirmando) { delete boton.dataset.confirmando; boton.textContent = textoOriginal; }
   }, 4000);
