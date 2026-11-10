@@ -567,11 +567,7 @@ body {
   transition: opacity .18s ease;
 }
 
-.fila.hecha .fila-texto {
-  opacity: .65;
-  text-decoration: line-through;
-  text-decoration-thickness: 1.5px;
-}
+.fila.hecha .fila-texto { opacity: .65; }
 
 .fila .avatar { width: 24px; height: 24px; font-size: 11px; }
 

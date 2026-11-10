@@ -181,7 +181,7 @@ main { display: block; }
   animation: tel-aparecer .32s var(--suave) both;
 }
 
-.tel-fila.hecha .tel-texto { opacity: .65; text-decoration: line-through; text-decoration-thickness: 1.2px; }
+.tel-fila.hecha .tel-texto { opacity: .65; }
 
 .tel-fila.saliendo { opacity: 0; transform: scale(.96); transition: opacity .2s ease, transform .2s ease; }
 
@@ -632,7 +632,7 @@ main { display: block; }
 .paso:hover .tel-fila.marcable { --hecha: 1; }
 .tel-fila.marcable .tel-check { transition: background-color .25s ease, color .25s ease; }
 .paso:hover .tel-fila.marcable .tel-check { background: var(--verde); box-shadow: none; color: #fff; }
-.paso:hover .tel-fila.marcable .tel-texto { opacity: .65; text-decoration: line-through; }
+.paso:hover .tel-fila.marcable .tel-texto { opacity: .65; }
 
 @media (max-width: 860px) {
   .pasos { grid-template-columns: 1fr; }

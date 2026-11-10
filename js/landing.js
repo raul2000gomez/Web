@@ -83,7 +83,7 @@
   /* ---------- Demostración del teléfono ----------
      Reproduce el uso real de la app: en la pantalla principal se escribe una cosa (o se dicta)
      y se guarda con un aviso «Guardado»; el botón de arriba a la izquierda abre la lista, donde
-     se tacha una cosa, se borra otra y se recupera con «Deshacer»; y se vuelve al inicio. */
+     se marca una cosa como hecha, se borra otra y se recupera con «Deshacer»; y se vuelve al inicio. */
 
   var telefono = document.querySelector('.hero .telefono');
   var lista = document.getElementById('demo-lista');
@@ -205,7 +205,7 @@
     });
   }
 
-  /* Al tachar, la fila baja al final y las demás se deslizan (Web Animations, como en la app). */
+  /* Al marcarla, la fila baja al final y las demás se deslizan (Web Animations, como en la app). */
   function marcar(li) {
     return tocar(li.querySelector('.tel-check')).then(function () {
       var antes = new Map();
@@ -285,7 +285,7 @@
 
   if (telefono && lista && campo) {
     if (menosMovimiento) {
-      /* Sin movimiento: la lista, quieta, con una cosa ya tachada. */
+      /* Sin movimiento: la lista, quieta, con una cosa ya hecha. */
       ['Regar las plantas', 'Llamar a Marta', 'Comprar pan'].forEach(function (t) { lista.appendChild(fila(t)); });
       lista.lastElementChild.classList.add('hecha');
       telefono.dataset.pantalla = 'lista';
