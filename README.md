@@ -32,7 +32,8 @@ css/con.css           Estilos de Cosas con y Cosas de (los de la app)
 js/landing.js         Animaciones de la portada
 js/con.js             Lógica de Cosas con (vistas, rutas, lista)
 js/cuenta.js          Lógica de Tu cuenta
-js/almacen-firebase.js  Guardado en la nube (Firebase) y cuentas
+js/almacen-firebase.js  Guardado en la nube (Firebase), cuentas y el aviso de cada cosa nueva a la
+                        demás gente de la lista (la función de avisos de la app, /api/avisos/avisar)
 js/almacen-local.js     Guardado en el navegador cuando Firebase no está configurado
 js/util.js            Utilidades (paleta, tono, identificadores…)
 firebase-config.js    ← Aquí van los datos de tu proyecto de Firebase

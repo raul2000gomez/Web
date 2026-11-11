@@ -3,7 +3,7 @@
    todos sus dispositivos, enlaza la cuenta con Google. Las listas se sincronizan en
    tiempo real y funcionan sin conexión gracias a la caché de Firestore. */
 
-import { idNuevo, local, ordenar, esColor, estaLlena, APP_URL } from './util.js';
+import { idNuevo, local, ordenar, esColor, estaLlena, APP_URL, enProduccion } from './util.js';
 
 const VERSION = '12.4.0';
 const CDN = `https://www.gstatic.com/firebasejs/${VERSION}/`;
@@ -11,6 +11,10 @@ const CLAVE_IDS = 'cosascon:ids';
 /* La cuenta de Google con la que se ha entrado ({ nombre, correo }), para que la app la enseñe
    en sus ajustes (mismo dominio). Sin cuenta, no existe. */
 const CLAVE_CUENTA = 'cosascon:cuenta';
+/* La función de avisos de la app (netlify/functions/avisos.mjs en el repositorio de la app), que también
+   atiende llamadas desde cosas.info. Al añadir una cosa se le pide que avise a la demás gente de la lista,
+   en los dispositivos donde activó las notificaciones de la app. */
+const API_AVISOS = new URL('api/avisos/', APP_URL).href;
 
 export async function crearAlmacenFirebase(config) {
   const [app, auth, fs] = await Promise.all([
@@ -62,6 +66,25 @@ export async function crearAlmacenFirebase(config) {
   function uid() {
     const u = autenticacion.currentUser || usuarioActual;
     return u ? u.uid : null;
+  }
+
+  /* Pide a la función de avisos que avise de esa cosa (recién guardada en el servidor) a la demás gente de la
+     lista. Va con la sesión de quien la ha añadido, y la función lo comprueba todo leyendo la lista y la cosa
+     con ella: que es de la lista, que la cosa es suya y reciente, y que no se ha avisado ya. Solo desde
+     cosas.info o la app publicada, no en una prueba en local. Si no llega, la cosa está guardada igual: solo
+     no se avisa. */
+  async function avisarDeCosa(id, cid) {
+    const u = autenticacion.currentUser;
+    if (!u || !enProduccion()) return;
+    try {
+      const token = await u.getIdToken();
+      const r = await fetch(`${API_AVISOS}avisar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ lista: id, cosa: cid })
+      });
+      if (!r.ok) console.warn('Aviso de la cosa nueva', r.status);
+    } catch (e) { console.warn('Aviso de la cosa nueva', e); }
   }
 
   function recordarId(id) {
@@ -235,12 +258,16 @@ export async function crearAlmacenFirebase(config) {
     },
 
     /* Con «grupo», la cosa nace dentro de ese grupo de la lista. La lista apunta la última cosa nueva (cuándo
-       y de quién): así sus miembros saben si hay novedades sin leer sus cosas (el punto verde). */
+       y de quién): así sus miembros saben si hay novedades sin leer sus cosas (el punto verde). Y la demás
+       gente de la lista recibe un aviso en el móvil (avisarDeCosa). */
     async anadirCosa(id, texto, grupo = null) {
       const yo = uid();
       const alta = fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: yo, grupo: grupo || null });
       fs.updateDoc(ref(id), { ultima: { en: fs.serverTimestamp(), por: yo, grupo: grupo || null } }).catch(e => console.warn('Última cosa', e));
-      return (await alta).id;
+      const cid = (await alta).id;
+      /* Ya está en el servidor (sin conexión, la promesa espera a que llegue): se avisa sin hacer esperar a nadie. */
+      avisarDeCosa(id, cid);
+      return cid;
     },
 
     /* Lo que has visto de cada lista y de cada grupo de cosas (usuarios/{uid}.vistos: clave → cuándo; la clave
