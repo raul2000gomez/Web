@@ -348,6 +348,12 @@ export async function crearAlmacenFirebase(config) {
       await fs.updateDoc(fs.doc(refCosas(id), cid), { hecha, hechaEn: hecha ? fs.serverTimestamp() : null });
     },
 
+    /* Cambia lo que dice una cosa (lo puede hacer cualquiera de la lista, como marcarla). No avisa a nadie:
+       los avisos son de las cosas nuevas. */
+    async cambiarTexto(id, cid, texto) {
+      await fs.updateDoc(fs.doc(refCosas(id), cid), { texto });
+    },
+
     async borrarCosa(id, cid) {
       await fs.deleteDoc(fs.doc(refCosas(id), cid));
     },

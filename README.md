@@ -10,6 +10,8 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 
 Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.info/con/…` o
 `cosas.info/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
+Cualquiera de la lista puede cambiar el texto de una cosa tocándolo, como en la app: Intro, o tocar
+fuera, lo guarda, y Escape lo deja como estaba.
 
 Tienen el aspecto de la app, como su pantalla de lista: fondo de color, flecha y título arriba, tus
 conexiones como filas en píldora y, abajo, un botón **Añadir cosas con** (o **Añadir cosas de**) que

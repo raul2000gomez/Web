@@ -208,6 +208,13 @@ export function crearAlmacenLocal() {
       guardar();
     },
 
+    async cambiarTexto(id, cid, texto) {
+      const c = datos.listas[id]?.cosas?.[cid];
+      if (!c) return;
+      c.texto = texto;
+      guardar();
+    },
+
     async borrarCosa(id, cid) {
       const l = datos.listas[id];
       if (!l || !l.cosas[cid]) return;

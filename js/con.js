@@ -4,7 +4,7 @@
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
 import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos, ordenar } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
-import { crearAlmacenLocal } from './almacen-local.js?v=4'; // Con versión: el de antes no tiene grupos, novedades ni sacar a gente.
+import { crearAlmacenLocal } from './almacen-local.js?v=5'; // Con versión: el de antes no tiene grupos, novedades, sacar a gente ni cambiar el texto de una cosa.
 
 const $ = s => document.querySelector(s);
 const raiz = document.documentElement;
@@ -130,7 +130,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js?v=5'); // Con versión: hacen falta los grupos, las novedades y sacar a gente.
+      const m = await import('./almacen-firebase.js?v=6'); // Con versión: hacen falta los grupos, las novedades, sacar a gente y cambiar el texto de una cosa.
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -186,6 +186,7 @@ function mostrar(nombre) {
 }
 
 async function enrutar() {
+  acabarEdicion(); // Lo que se estaba escribiendo en una fila se guarda antes de que deje de verse.
   cerrarHoja();
   const id = idDeUrl();
   /* La misma lista, ya abierta: solo se pasa de la lista a uno de sus grupos o al revés. */
@@ -677,6 +678,7 @@ function abrirLista(id, datos) {
 }
 
 function cerrarLista() {
+  acabarEdicion();
   if (pararLista) { pararLista(); pararLista = null; }
   if (pararCosas) { pararCosas(); pararCosas = null; }
   if (pararGrupos) { pararGrupos(); pararGrupos = null; }
@@ -761,7 +763,101 @@ function pintar() {
   pintarNivel();
   if (raiz.dataset.vista === 'grupo') pintarPaginaGrupo();
   marcarLoVisto();
+  /* La cosa que se estaba escribiendo se ha ido (la han borrado, o ha pasado a otro grupo), o su fila ha cambiado
+     de sitio y el navegador le ha quitado el foco: lo escrito se guarda y la edición acaba. */
+  if (edicion && (!edicion.texto.isConnected || edicion.texto.closest('.saliendo') || document.activeElement !== edicion.texto)) acabarEdicion();
 }
+
+/* ---------- Cambiar el texto de una cosa ----------
+   Como en la app: se toca el texto y se escribe ahí mismo (editable, solo texto: lo pegado llega sin
+   formato). Intro, o salir de él, lo guarda; Escape lo deja como estaba, y vacío también (para quitar
+   una cosa está la papelera). Mientras se escribe, la fila lleva un aro y las barras de abajo se
+   apartan (con.css: data-editando), que el teclado ya ocupa ese sitio. Cualquiera de la lista puede
+   cambiar cualquier cosa, como puede marcarla. */
+
+const EDITABLE = (() => {
+  const prueba = document.createElement('p');
+  try { prueba.contentEditable = 'plaintext-only'; } catch (e) { return 'true'; } // Navegadores de antes (Firefox hasta 2025).
+  return prueba.contentEditable === 'plaintext-only' ? 'plaintext-only' : 'true';
+})();
+
+let edicion = null; // { lista, id, texto: el <p> en el que se escribe, escrito: si se ha tocado algo }
+
+const esTextoEditable = n => n instanceof Element && n.matches('.fila .fila-texto[contenteditable]');
+
+/* Lo escrito, como se guarda: en una línea, sin espacios de más y hasta 500 caracteres; '' si no se ha
+   tocado. innerText, y no textContent: un salto de línea pegado es un <br> (o un bloque) y separa palabras. */
+function textoEscrito() {
+  return edicion.escrito ? limpiar(edicion.texto.innerText, 500) : '';
+}
+
+/* Guarda lo escrito, si cambia algo. La fila lo enseña ya: si no se pudiera guardar, vuelve a lo de antes. */
+function guardarTexto() {
+  if (!edicion || edicion.lista !== listaId) return;
+  const c = cosasActuales.get(edicion.id);
+  const nuevo = textoEscrito();
+  if (!c || !nuevo || nuevo === c.texto) return;
+  const id = listaId;
+  cosasActuales.set(c.id, { ...c, texto: nuevo });
+  almacen.cambiarTexto(id, c.id, nuevo).catch(e => {
+    console.warn('Texto de la cosa', e);
+    toast('No se pudo guardar.');
+    const ahora = cosasActuales.get(c.id);
+    if (listaId !== id || !ahora || ahora.texto !== nuevo) return;
+    cosasActuales.set(c.id, { ...ahora, texto: c.texto });
+    pintar();
+  });
+}
+
+/* Acaba la edición sin guardar: la fila vuelve al texto de la cosa, limpio (sin saltos ni espacios duros). */
+function cerrarEdicion() {
+  if (!edicion) return;
+  const { id, texto } = edicion;
+  edicion = null;
+  raiz.removeAttribute('data-editando');
+  const c = cosasActuales.get(id);
+  if (c && texto.textContent !== c.texto) texto.textContent = c.texto;
+  if (document.activeElement === texto) texto.blur();
+}
+
+function acabarEdicion() {
+  guardarTexto();
+  cerrarEdicion();
+}
+
+for (const contenedor of [el.cosas, el.cosasGrupo]) {
+  contenedor.addEventListener('focusin', ev => {
+    if (!esTextoEditable(ev.target) || !listaId) return;
+    const id = ev.target.closest('.fila').dataset.id;
+    if (!cosasActuales.has(id)) return;
+    edicion = { lista: listaId, id, texto: ev.target, escrito: false };
+    raiz.setAttribute('data-editando', '');
+  });
+  contenedor.addEventListener('focusout', ev => { if (edicion && ev.target === edicion.texto) acabarEdicion(); });
+  contenedor.addEventListener('input', ev => { if (edicion && ev.target === edicion.texto) edicion.escrito = true; });
+  contenedor.addEventListener('keydown', ev => {
+    if (!edicion || ev.target !== edicion.texto || ev.isComposing) return;
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      ev.stopPropagation(); // Solo deshace lo escrito: lo demás (el desplegable, una hoja) sigue como estaba.
+      edicion.escrito = false;
+      acabarEdicion();
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      acabarEdicion();
+    }
+  });
+  /* Un salto de línea (el Intro del teclado del móvil, que no siempre dice qué tecla es) también lo guarda. */
+  contenedor.addEventListener('beforeinput', ev => {
+    if (!edicion || ev.target !== edicion.texto) return;
+    if (ev.inputType !== 'insertParagraph' && ev.inputType !== 'insertLineBreak') return;
+    ev.preventDefault();
+    acabarEdicion();
+  });
+}
+/* Si la página se va (o pasa a segundo plano) con algo a medio escribir, se guarda sin salir de la fila. */
+window.addEventListener('pagehide', guardarTexto);
+document.addEventListener('visibilitychange', () => { if (document.hidden) guardarTexto(); });
 
 function botonFinal(accion) {
   if (accion === 'quitar') return `<button type="button" class="borrar quitar" data-accion="quitar" aria-label="Quitar del grupo">${ICONO_QUITAR}</button>`;
@@ -770,20 +866,23 @@ function botonFinal(accion) {
 }
 
 /* Una fila de cosa: en la lista (con «borrar»), en la página de un grupo (con «quitar») o en el
-   desplegable de «Añadir cosas» (sin check y con «añadir»). */
+   desplegable de «Añadir cosas» (sin check y con «añadir»). Salvo en el desplegable, su texto se
+   cambia tocándolo (ver «Cambiar el texto de una cosa», abajo). */
 function crearFila(c, accion = 'borrar') {
   const li = document.createElement('li');
   li.className = accion === 'anadir' ? 'fila candidata' : 'fila';
   li.dataset.id = c.id;
   const check = accion === 'anadir' ? '' : `<button type="button" class="hecho" data-accion="alternar" aria-pressed="false" aria-label="Marcar como hecha">${ICONO_CHECK}</button>`;
-  li.innerHTML = `${check}<p class="fila-texto"></p><span class="avatar" hidden></span>${botonFinal(accion)}`;
+  const editable = accion === 'anadir' ? '' : ` contenteditable="${EDITABLE}" enterkeyhint="done" autocapitalize="sentences"`;
+  li.innerHTML = `${check}<p class="fila-texto"${editable}></p><span class="avatar" hidden></span>${botonFinal(accion)}`;
   actualizarFila(li, c);
   return li;
 }
 
 function actualizarFila(li, c) {
   const texto = li.querySelector('.fila-texto');
-  if (texto.textContent !== c.texto) texto.textContent = c.texto;
+  /* Lo que se está escribiendo no se pisa con lo que llega (de otra persona, o de la nube). */
+  if (texto.textContent !== c.texto && !(edicion && edicion.texto === texto)) texto.textContent = c.texto;
   const hecha = !!c.hecha;
   li.classList.toggle('hecha', hecha);
   const boton = li.querySelector('.hecho');
