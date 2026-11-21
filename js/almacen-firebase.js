@@ -63,6 +63,9 @@ export async function crearAlmacenFirebase(config) {
   function ref(id) { return fs.doc(db, 'listas', id); }
   function refCosas(id) { return fs.collection(db, 'listas', id, 'cosas'); }
   function refGrupos(id) { return fs.collection(db, 'listas', id, 'grupos'); }
+  /* La foto grande de cada cosa (js/fotos.js): un documento por cosa, con el mismo id. */
+  function refFotos(id) { return fs.collection(db, 'listas', id, 'fotos'); }
+  const resumen = foto => ({ v: foto.v, mini: foto.mini, ancho: foto.ancho, alto: foto.alto });
   function uid() {
     const u = autenticacion.currentUser || usuarioActual;
     return u ? u.uid : null;
@@ -260,9 +263,20 @@ export async function crearAlmacenFirebase(config) {
     /* Con «grupo», la cosa nace dentro de ese grupo de la lista. La lista apunta la última cosa nueva (cuándo
        y de quién): así sus miembros saben si hay novedades sin leer sus cosas (el punto verde). Y la demás
        gente de la lista recibe un aviso en el móvil (avisarDeCosa). */
-    async anadirCosa(id, texto, grupo = null) {
+    async anadirCosa(id, texto, grupo = null, foto = null) {
       const yo = uid();
-      const alta = fs.addDoc(refCosas(id), { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: yo, grupo: grupo || null });
+      const datos = { texto, hecha: false, creada: fs.serverTimestamp(), hechaEn: null, por: yo, grupo: grupo || null };
+      let alta;
+      if (foto) {
+        /* Con foto, la cosa y su grande van juntas: si las reglas no admitieran la foto, no queda una sin la otra. */
+        const nueva = fs.doc(refCosas(id));
+        const lote = fs.writeBatch(db);
+        lote.set(nueva, { ...datos, foto: resumen(foto) });
+        lote.set(fs.doc(refFotos(id), nueva.id), { v: foto.v, datos: foto.datos, por: yo });
+        alta = lote.commit().then(() => nueva);
+      } else {
+        alta = fs.addDoc(refCosas(id), datos);
+      }
       fs.updateDoc(ref(id), { ultima: { en: fs.serverTimestamp(), por: yo, grupo: grupo || null } }).catch(e => console.warn('Última cosa', e));
       const cid = (await alta).id;
       /* Ya está en el servidor (sin conexión, la promesa espera a que llegue): se avisa sin hacer esperar a nadie. */
@@ -335,13 +349,19 @@ export async function crearAlmacenFirebase(config) {
       await fs.updateDoc(fs.doc(refCosas(id), cid), { grupo: grupo || null });
     },
 
-    async restaurarCosa(id, cosa) {
+    /* Con «grande» (lo que devolvió borrarCosa), vuelve también su foto; sin ella, la cosa vuelve sin foto. */
+    async restaurarCosa(id, cosa, grande = null) {
       const { id: cid, ...datos } = cosa;
       const limpio = { ...datos };
       /* Las fechas estimadas se sustituyen por las del servidor. */
       limpio.creada = fs.serverTimestamp();
       if (limpio.hecha) limpio.hechaEn = fs.serverTimestamp(); else limpio.hechaEn = null;
-      await fs.setDoc(fs.doc(refCosas(id), cid), limpio);
+      const conFoto = grande && limpio.foto && limpio.foto.v === grande.v;
+      if (!conFoto) limpio.foto = null;
+      const lote = fs.writeBatch(db);
+      lote.set(fs.doc(refCosas(id), cid), limpio);
+      if (conFoto) lote.set(fs.doc(refFotos(id), cid), { v: grande.v, datos: grande.datos, por: grande.por || uid() });
+      await lote.commit();
     },
 
     async alternarCosa(id, cid, hecha) {
@@ -354,8 +374,42 @@ export async function crearAlmacenFirebase(config) {
       await fs.updateDoc(fs.doc(refCosas(id), cid), { texto });
     },
 
-    async borrarCosa(id, cid) {
-      await fs.deleteDoc(fs.doc(refCosas(id), cid));
+    /* Borra la cosa y su foto grande. Devuelve la grande ({ v, datos, por }, o null) para poder deshacerlo. */
+    async borrarCosa(id, cid, conFoto = false) {
+      const grande = conFoto ? await almacen.leerFoto(id, cid).catch(() => null) : null;
+      const lote = fs.writeBatch(db);
+      lote.delete(fs.doc(refCosas(id), cid));
+      if (conFoto) lote.delete(fs.doc(refFotos(id), cid));
+      await lote.commit();
+      return grande;
+    },
+
+    /* ---------- La foto de una cosa (js/fotos.js) ---------- */
+
+    /* La grande: { v, datos, por }, o null si no está. */
+    async leerFoto(id, cid) {
+      const snap = await fs.getDoc(fs.doc(refFotos(id), cid));
+      if (!snap.exists()) return null;
+      const { v, datos, por } = snap.data();
+      return typeof v === 'string' && typeof datos === 'string' ? { v, datos, por: por || null } : null;
+    },
+
+    /* Pone (o cambia) la foto de una cosa: su grande y, en la cosa, la pequeña. Juntas: o las dos, o ninguna. */
+    async ponerFoto(id, cid, foto) {
+      const lote = fs.writeBatch(db);
+      lote.set(fs.doc(refFotos(id), cid), { v: foto.v, datos: foto.datos, por: foto.por || uid() });
+      lote.update(fs.doc(refCosas(id), cid), { foto: resumen(foto) });
+      await lote.commit();
+    },
+
+    /* Quita la foto de una cosa. Devuelve la que tenía (con su grande, si se pudo leer) para poder deshacerlo. */
+    async quitarFoto(id, cid, foto) {
+      const grande = await almacen.leerFoto(id, cid).catch(() => null);
+      const lote = fs.writeBatch(db);
+      lote.delete(fs.doc(refFotos(id), cid));
+      lote.update(fs.doc(refCosas(id), cid), { foto: null });
+      await lote.commit();
+      return grande && foto && grande.v === foto.v ? { ...resumen(foto), datos: grande.datos, por: grande.por } : null;
     },
 
     async actualizarLista(id, cambios) {
@@ -383,10 +437,11 @@ export async function crearAlmacenFirebase(config) {
     },
 
     async borrarLista(id) {
-      const [cosas, grupos] = await Promise.all([fs.getDocs(refCosas(id)), fs.getDocs(refGrupos(id))]);
+      const [cosas, grupos, fotos] = await Promise.all([fs.getDocs(refCosas(id)), fs.getDocs(refGrupos(id)), fs.getDocs(refFotos(id)).catch(() => null)]);
       const lote = fs.writeBatch(db);
       cosas.forEach(d => lote.delete(d.ref));
       grupos.forEach(d => lote.delete(d.ref));
+      if (fotos) fotos.forEach(d => lote.delete(d.ref));
       lote.delete(ref(id));
       await lote.commit();
       olvidarId(id);

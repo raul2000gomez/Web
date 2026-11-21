@@ -6,14 +6,17 @@ rules_version = '2';
 // Modelo:
 //   listas/{id}              { nombre, tipo: 'con' | 'de', color, creada, creadaPor, uids: [uid], miembros: { uid: { nombre, color, desde } },
 //                              ultima: { en, por, grupo } }   (la última cosa nueva: para el punto verde de las novedades)
-//   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por, grupo }   (grupo: el id de uno de sus grupos, o null)
+//   listas/{id}/cosas/{cid}  { texto, hecha, creada, hechaEn, por, grupo, foto }   (grupo: el id de uno de sus grupos,
+//                            o null; foto: { v, mini, ancho, alto }, la pequeña, o null)
+//   listas/{id}/fotos/{cid}  { v, datos, por }   La foto grande de la cosa {cid} (datos: data: en base64)
 //   listas/{id}/grupos/{gid} { nombre, color, creada, por }                   (grupos de cosas dentro de la lista)
 //   usuarios/{uid}           { nombre, color, actualizado, vistos: { idLista | 'idLista~idGrupo' | '_desde': cuándo } }
 //   personales/{uid}/elementos/{id}   Las cosas de la app Cosas (cosas-app.netlify.app) de quien ha
 //                            entrado con Google, para tenerlas en todos sus dispositivos (app/nube.js):
-//                            { tipo: 'cosa', id, texto, hecha, creada, hechaEn, grupo }
+//                            { tipo: 'cosa', id, texto, hecha, creada, hechaEn, grupo, foto? }
 //                            { tipo: 'grupo', id, nombre, color, creada }
 //                            { tipo: 'ajustes', colorFondo, nombre }
+//   personales/{uid}/fotos/{id}       La foto grande de cada cosa de la app: { v, datos }
 //
 // Cualquiera que tenga el enlace (y esté identificado, aunque sea de forma anónima) puede
 // leer una lista y unirse a ella añadiéndose a sí mismo. Solo los miembros pueden ver y
@@ -55,6 +58,20 @@ service cloud.firestore {
     // El grupo de una cosa: ninguno (null o sin el campo) o el id de uno de los grupos de su lista.
     function grupoDeCosaValido(d) {
       return !('grupo' in d) || d.grupo == null || textoValido(d.grupo, 40);
+    }
+
+    // La foto de una cosa (la pequeña, la de su fila): ninguna (null o sin el campo) o { v, mini, ancho, alto }.
+    // «v» identifica la foto; la grande va en su propio documento (abajo).
+    function fotoDeCosaValida(d) {
+      return !('foto' in d) || d.foto == null
+        || (d.foto is map && d.foto.keys().hasOnly(['v', 'mini', 'ancho', 'alto'])
+            && textoValido(d.foto.v, 40) && textoValido(d.foto.mini, 40000)
+            && d.foto.ancho is int && d.foto.alto is int);
+    }
+
+    // La foto grande de una cosa: «datos» es la foto en base64 (data:). Un documento admite hasta 1 MiB.
+    function fotoGrandeValida(d) {
+      return textoValido(d.v, 40) && textoValido(d.datos, 1000000);
     }
 
     // Unirse: la única diferencia con la lista anterior es que uno mismo aparece en «uids» y en «miembros».
@@ -112,14 +129,29 @@ service cloud.firestore {
         allow create: if esMiembro(listaPadre())
           && textoValido(request.resource.data.texto, 500)
           && request.resource.data.hecha is bool
-          && grupoDeCosaValido(request.resource.data);
+          && grupoDeCosaValido(request.resource.data)
+          && fotoDeCosaValida(request.resource.data);
 
         allow update: if esMiembro(listaPadre())
           && textoValido(request.resource.data.texto, 500)
           && request.resource.data.hecha is bool
-          && grupoDeCosaValido(request.resource.data);
+          && grupoDeCosaValido(request.resource.data)
+          && fotoDeCosaValida(request.resource.data);
 
         allow delete: if esMiembro(listaPadre());
+      }
+
+      // La foto grande de cada cosa (un documento por cosa, con su mismo id): como las cosas, solo para los miembros.
+      match /fotos/{cid} {
+        function listaDeLaFoto() {
+          return get(/databases/$(database)/documents/listas/$(id)).data;
+        }
+
+        allow read, delete: if esMiembro(listaDeLaFoto());
+
+        allow create, update: if esMiembro(listaDeLaFoto())
+          && request.resource.data.keys().hasOnly(['v', 'datos', 'por'])
+          && fotoGrandeValida(request.resource.data);
       }
 
       // Los grupos de cosas de la lista: como sus cosas, solo para los miembros.
@@ -151,9 +183,10 @@ service cloud.firestore {
     }
 
     function cosaValida(d) {
-      return d.keys().hasOnly(['tipo', 'id', 'texto', 'hecha', 'creada', 'hechaEn', 'grupo'])
+      return d.keys().hasOnly(['tipo', 'id', 'texto', 'hecha', 'creada', 'hechaEn', 'grupo', 'foto'])
         && textoValido(d.id, 200) && textoValido(d.texto, 2000) && d.hecha is bool
-        && d.creada is number && numeroONulo(d.hechaEn) && textoONulo(d.grupo, 200);
+        && d.creada is number && numeroONulo(d.hechaEn) && textoONulo(d.grupo, 200)
+        && fotoDeCosaValida(d);
     }
 
     function grupoValido(d) {
@@ -176,6 +209,14 @@ service cloud.firestore {
     match /personales/{uid}/elementos/{elemento} {
       allow read, delete: if identificado() && request.auth.uid == uid;
       allow create, update: if identificado() && request.auth.uid == uid && elementoValido(request.resource.data);
+    }
+
+    // La foto grande de cada cosa de la app (un documento por cosa): solo tuya.
+    match /personales/{uid}/fotos/{foto} {
+      allow read, delete: if identificado() && request.auth.uid == uid;
+      allow create, update: if identificado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['v', 'datos'])
+        && fotoGrandeValida(request.resource.data);
     }
   }
 }

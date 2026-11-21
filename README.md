@@ -11,7 +11,11 @@ La web de **Cosas**, la app para apuntar las cosas que tienes que hacer
 Los dos apartados funcionan igual y en tiempo real: te dan un enlace (`cosas.info/con/…` o
 `cosas.info/de/…`) y quien lo abra ve y añade cosas al momento, desde cualquier dispositivo.
 Cualquiera de la lista puede cambiar el texto de una cosa tocándolo, como en la app: Intro, o tocar
-fuera, lo guarda, y Escape lo deja como estaba.
+fuera, lo guarda, y Escape lo deja como estaba. Y ponerle **una foto**: con la cámara de la barra de
+escribir (para lo que se va a apuntar) o con la de la fila (sale mientras se escribe en una cosa sin
+foto). Se ve en pequeño en la fila y, al tocarla, en grande, con «Cambiar foto» y «Quitar foto». La
+pequeña va en la cosa; la grande, en `listas/{id}/fotos/{cosa}` (`js/fotos.js`). Las fotos necesitan las
+reglas de `firestore.rules` de después de las fotos: sin ellas, Firestore no deja guardarlas.
 
 Tienen el aspecto de la app, como su pantalla de lista: fondo de color, flecha y título arriba, tus
 conexiones como filas en píldora y, abajo, un botón **Añadir cosas con** (o **Añadir cosas de**) que
@@ -37,6 +41,7 @@ js/cuenta.js          Lógica de Tu cuenta
 js/almacen-firebase.js  Guardado en la nube (Firebase), cuentas y el aviso de cada cosa nueva a la
                         demás gente de la lista (la función de avisos de la app, /api/avisos/avisar)
 js/almacen-local.js     Guardado en el navegador cuando Firebase no está configurado
+js/fotos.js           Las fotos de las cosas: prepararlas (reducirlas a JPEG) y su forma
 js/util.js            Utilidades (paleta, tono, identificadores…)
 firebase-config.js    ← Aquí van los datos de tu proyecto de Firebase
 firestore.rules       Reglas de seguridad para pegar en Firebase

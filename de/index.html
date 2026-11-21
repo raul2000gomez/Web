@@ -44,7 +44,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <!-- GitHub Pages guarda CSS y JS en caché 10 minutos: al cambiar con.css o con.js, sube el ?v=
        (aquí y en con/index.html) para que nadie mezcle una página nueva con archivos viejos. -->
-  <link rel="stylesheet" href="../css/con.css?v=10">
+  <link rel="stylesheet" href="../css/con.css?v=11">
 </head>
 <body>
 
@@ -134,6 +134,7 @@
         <form id="form-cosa" autocomplete="off" novalidate>
           <div class="pildora">
             <input class="campo" id="campo-cosa" type="text" name="cosa" placeholder="Escribe una cosa…" aria-label="Escribe una cosa" maxlength="500" autocapitalize="sentences" enterkeyhint="done">
+            <button type="button" class="foto-barra" id="foto-nueva" aria-label="Añadir foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h1.9l1.5-2.2h5.2L16.1 6H18a2.5 2.5 0 0 1 2.5 2.5v8.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.6" r="3.6"/></svg><img alt="" hidden></button>
             <button type="submit" class="enviar" id="enviar" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
           </div>
         </form>
@@ -162,6 +163,7 @@
         <form id="form-cosa-grupo" autocomplete="off" novalidate>
           <div class="pildora">
             <input class="campo" id="campo-cosa-grupo" type="text" name="cosa" placeholder="Escribe una cosa…" aria-label="Escribe una cosa en este grupo" maxlength="500" autocapitalize="sentences" enterkeyhint="done">
+            <button type="button" class="foto-barra" id="foto-nueva-grupo" aria-label="Añadir foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h1.9l1.5-2.2h5.2L16.1 6H18a2.5 2.5 0 0 1 2.5 2.5v8.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.6" r="3.6"/></svg><img alt="" hidden></button>
             <button type="submit" class="enviar" id="enviar-grupo" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
           </div>
         </form>
@@ -282,12 +284,34 @@
     </section>
   </div>
 
+  <!-- La foto de una cosa, en grande: se abre al tocar su foto en la fila. Mientras llega la grande se ve la
+       pequeña. «Cambiar foto» abre la cámara o la galería; «Quitar foto» la quita (con «Deshacer»). -->
+  <div class="hoja" id="hoja-foto" aria-hidden="true">
+    <div class="hoja-velo" data-cerrar-hoja></div>
+    <section class="hoja-panel" role="dialog" aria-modal="true" aria-labelledby="titulo-hoja-foto">
+      <header class="hoja-cabecera">
+        <h2 class="hoja-titulo" id="titulo-hoja-foto" tabindex="-1"></h2>
+        <button type="button" class="redondo" data-cerrar-hoja aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <img class="imagen-foto" id="imagen-hoja-foto" alt="">
+      <p class="hoja-texto" id="nota-hoja-foto" role="status" hidden></p>
+      <div class="hoja-acciones">
+        <button type="button" class="boton-ancho" id="cambiar-foto">Cambiar foto</button>
+        <button type="button" class="boton-ancho" id="quitar-foto">Quitar foto</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Para elegir una foto (la cámara o la galería, lo decide el móvil). No se ve, pero no está escondida del
+       todo: algunos navegadores no abren un selector de archivos oculto. -->
+  <input type="file" id="elegir-foto" class="elegir-foto" accept="image/*" tabindex="-1" aria-hidden="true">
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <noscript><p style="padding:24px;text-align:center">Cosas de necesita JavaScript para funcionar.</p></noscript>
 
   <!-- La misma lógica que /con/: la página declara su tipo en data-tipo. -->
   <script src="../firebase-config.js"></script>
-  <script type="module" src="../js/con.js?v=12"></script>
+  <script type="module" src="../js/con.js?v=13"></script>
 </body>
 </html>

@@ -4,7 +4,8 @@
    inicio, nombre, lista y no-existe. Nada de frameworks: HTML, CSS y este archivo. */
 
 import { PALETA, APP_URL, tono, esColor, esId, colorPara, colorAleatorio, inicial, limpiar, tituloDe, tipoDe, enlaceDe, enProduccion, estaLlena, esDeDos, ordenar } from './util.js?v=2'; // Con versión: un util.js viejo en caché no tiene enProduccion.
-import { crearAlmacenLocal } from './almacen-local.js?v=5'; // Con versión: el de antes no tiene grupos, novedades, sacar a gente ni cambiar el texto de una cosa.
+import { prepararFoto, fotoDe } from './fotos.js?v=1';
+import { crearAlmacenLocal } from './almacen-local.js?v=6'; // Con versión: el de antes no tiene grupos, novedades, sacar a gente, cambiar el texto ni fotos.
 
 const $ = s => document.querySelector(s);
 const raiz = document.documentElement;
@@ -31,6 +32,9 @@ const el = {
   ajusteEtiquetaNombre: $('#ajuste-etiqueta-nombre'),
   personas: $('#personas'), etiquetaPersonas: $('#etiqueta-personas'), listaPersonas: $('#lista-personas'),
   copiarEnlace: $('#copiar-enlace'), entrarGoogleHoja: $('#entrar-google-hoja'), salirLista: $('#salir-lista'), borrarLista: $('#borrar-lista'), hojaNota: $('#hoja-nota'),
+  fotoNueva: $('#foto-nueva'), fotoNuevaGrupo: $('#foto-nueva-grupo'), elegirFoto: $('#elegir-foto'),
+  hojaFoto: $('#hoja-foto'), tituloHojaFoto: $('#titulo-hoja-foto'), imagenHojaFoto: $('#imagen-hoja-foto'), notaHojaFoto: $('#nota-hoja-foto'),
+  cambiarFoto: $('#cambiar-foto'), quitarFoto: $('#quitar-foto'),
   toast: $('#toast'),
   temaMeta: document.querySelectorAll('meta[name="theme-color"]')
 };
@@ -42,6 +46,7 @@ const ICONO_OJO = '<svg class="ojo-abierto" viewBox="0 0 24 24" aria-hidden="tru
   + '<svg class="ojo-cerrado" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M3 3l18 18M10.6 5.7A11 11 0 0 1 12 5.5c6.5 0 10 6.5 10 6.5a17.6 17.6 0 0 1-3.3 4.1M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 6.5 10 6.5a10 10 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
 const ICONO_QUITAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>';
 const ICONO_MAS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const ICONO_CAMARA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h1.9l1.5-2.2h5.2L16.1 6H18a2.5 2.5 0 0 1 2.5 2.5v8.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.6" r="3.6"/></svg>';
 
 let almacen = null;
 let usuario = null;
@@ -130,7 +135,7 @@ async function arrancar() {
   const hayNube = config && config.apiKey && config.projectId && config.appId;
   if (hayNube) {
     try {
-      const m = await import('./almacen-firebase.js?v=6'); // Con versión: hacen falta los grupos, las novedades, sacar a gente y cambiar el texto de una cosa.
+      const m = await import('./almacen-firebase.js?v=7'); // Con versión: hacen falta los grupos, las novedades, sacar a gente, cambiar el texto y las fotos.
       almacen = await m.crearAlmacenFirebase(config);
     } catch (e) {
       console.warn('No se pudo cargar Firebase; se usa el modo local.', e);
@@ -651,6 +656,9 @@ function abrirLista(id, datos) {
   gruposCargados = false;
   abiertos = leerAbiertos(id);
   [filas, filasGrupo, filasMiembro, filasCandidata].forEach(m => m.clear());
+  grandes.clear();
+  soltarFotoDeBarra('lista');
+  soltarFotoDeBarra('grupo');
   el.cosas.innerHTML = '';
   el.cosasGrupo.innerHTML = '';
   el.listaCandidatas.innerHTML = '';
@@ -765,7 +773,11 @@ function pintar() {
   marcarLoVisto();
   /* La cosa que se estaba escribiendo se ha ido (la han borrado, o ha pasado a otro grupo), o su fila ha cambiado
      de sitio y el navegador le ha quitado el foco: lo escrito se guarda y la edición acaba. */
-  if (edicion && (!edicion.texto.isConnected || edicion.texto.closest('.saliendo') || document.activeElement !== edicion.texto)) acabarEdicion();
+  if (edicion && (!edicion.texto.isConnected || edicion.texto.closest('.saliendo') || document.activeElement !== edicion.texto)) {
+    const fila = edicion.texto.closest('.fila');
+    if (fila) fila.classList.remove('escribiendo');
+    acabarEdicion();
+  }
 }
 
 /* ---------- Cambiar el texto de una cosa ----------
@@ -832,8 +844,19 @@ for (const contenedor of [el.cosas, el.cosasGrupo]) {
     if (!cosasActuales.has(id)) return;
     edicion = { lista: listaId, id, texto: ev.target, escrito: false };
     raiz.setAttribute('data-editando', '');
+    ev.target.closest('.fila').classList.add('escribiendo'); // Con la cámara al lado (con.css).
   });
-  contenedor.addEventListener('focusout', ev => { if (edicion && ev.target === edicion.texto) acabarEdicion(); });
+  /* Si el foco va del texto a la cámara de su fila (el tabulador lleva ahí), la fila sigue marcada: si no, la
+     cámara se escondería antes de recibirlo. */
+  contenedor.addEventListener('focusout', ev => {
+    const { target: saliente, relatedTarget: entrante } = ev;
+    const fila = saliente instanceof Element && saliente.matches('.fila-texto, .poner-foto') ? saliente.closest('.fila') : null;
+    const sigue = fila && entrante instanceof Element && fila.contains(entrante) && entrante.matches('.fila-texto, .poner-foto');
+    if (fila && !sigue) fila.classList.remove('escribiendo');
+    if (edicion && saliente === edicion.texto) acabarEdicion();
+  });
+  /* Tocar la cámara no le quita el foco al texto: si se lo quitara, la cámara se escondería bajo el dedo. */
+  contenedor.addEventListener('mousedown', ev => { if (ev.target.closest('.poner-foto')) ev.preventDefault(); });
   contenedor.addEventListener('input', ev => { if (edicion && ev.target === edicion.texto) edicion.escrito = true; });
   contenedor.addEventListener('keydown', ev => {
     if (!edicion || ev.target !== edicion.texto || ev.isComposing) return;
@@ -874,7 +897,11 @@ function crearFila(c, accion = 'borrar') {
   li.dataset.id = c.id;
   const check = accion === 'anadir' ? '' : `<button type="button" class="hecho" data-accion="alternar" aria-pressed="false" aria-label="Marcar como hecha">${ICONO_CHECK}</button>`;
   const editable = accion === 'anadir' ? '' : ` contenteditable="${EDITABLE}" enterkeyhint="done" autocapitalize="sentences"`;
-  li.innerHTML = `${check}<p class="fila-texto"${editable}></p><span class="avatar" hidden></span>${botonFinal(accion)}`;
+  /* Su foto (si la tiene) y, mientras se escribe en ella sin foto, la cámara para ponérsela (con.css). */
+  const foto = accion === 'anadir' ? ''
+    : `<button type="button" class="poner-foto" data-accion="poner-foto" aria-label="Añadir foto">${ICONO_CAMARA}</button>`
+      + '<button type="button" class="foto-cosa" data-accion="ver-foto" aria-label="Ver la foto" hidden><img alt=""></button>';
+  li.innerHTML = `${check}<p class="fila-texto"${editable}></p>${foto}<span class="avatar" hidden></span>${botonFinal(accion)}`;
   actualizarFila(li, c);
   return li;
 }
@@ -885,6 +912,15 @@ function actualizarFila(li, c) {
   if (texto.textContent !== c.texto && !(edicion && edicion.texto === texto)) texto.textContent = c.texto;
   const hecha = !!c.hecha;
   li.classList.toggle('hecha', hecha);
+  const botonFoto = li.querySelector('.foto-cosa');
+  if (botonFoto) {
+    const foto = fotoDe(c.foto);
+    li.classList.toggle('con-foto', !!foto);
+    botonFoto.hidden = !foto;
+    const imagen = botonFoto.querySelector('img');
+    if (foto && imagen.getAttribute('src') !== foto.mini) imagen.src = foto.mini;
+    else if (!foto && imagen.hasAttribute('src')) imagen.removeAttribute('src');
+  }
   const boton = li.querySelector('.hecho');
   if (boton) {
     boton.setAttribute('aria-pressed', hecha ? 'true' : 'false');
@@ -1088,12 +1124,12 @@ async function borrarCosa(li, c) {
   retirar(li);
   el.vacio.hidden = gruposActuales.size > 0 || cosasActuales.size > 0;
   try {
-    await almacen.borrarCosa(id, c.id);
+    const grande = await almacen.borrarCosa(id, c.id, !!fotoDe(c.foto));
     toast('Eliminada', {
       icono: true, accion: 'Deshacer', alAccionar: () => {
         // Si su grupo ya no existe, vuelve suelta.
         if (copia.grupo && !gruposActuales.has(copia.grupo)) copia.grupo = null;
-        almacen.restaurarCosa(id, copia).catch(() => toast('No se pudo recuperar.'));
+        almacen.restaurarCosa(id, copia, grande).catch(() => toast('No se pudo recuperar.'));
       }
     });
   } catch (e) { toast('No se pudo eliminar.'); }
@@ -1141,6 +1177,8 @@ el.cosas.addEventListener('click', ev => {
   if (!c) return;
   if (accion === 'alternar') alternar(li, c);
   if (accion === 'borrar') borrarCosa(li, c);
+  if (accion === 'poner-foto') elegirFotoParaCosa(c.id);
+  if (accion === 'ver-foto') abrirHojaFoto(c.id, boton);
 });
 
 el.campoCosa.addEventListener('input', () => { el.enviar.disabled = !limpiar(el.campoCosa.value, 500); });
@@ -1149,11 +1187,152 @@ el.formCosa.addEventListener('submit', async ev => {
   ev.preventDefault();
   const texto = limpiar(el.campoCosa.value, 500);
   if (!texto || !listaId) return;
+  const foto = soltarFotoDeBarra('lista');
   el.campoCosa.value = '';
   el.enviar.disabled = true;
   el.campoCosa.focus();
-  try { await almacen.anadirCosa(listaId, texto); }
-  catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosa.value = texto; el.enviar.disabled = false; }
+  try { await almacen.anadirCosa(listaId, texto, null, foto); }
+  catch (e) {
+    console.error(e); toast(foto ? 'No se pudo guardar con la foto.' : 'No se pudo guardar.');
+    el.campoCosa.value = texto; el.enviar.disabled = false;
+    if (foto) ponerFotoEnBarra('lista', foto);
+  }
+});
+
+/* ---------- Fotos: una en cada cosa (js/fotos.js) ----------
+   La pequeña va en la cosa y se ve en su fila; la grande se lee al tocarla, en su hoja. Se pone desde la
+   cámara de la fila (mientras se escribe en ella) o desde la de la barra (para lo que se va a apuntar). */
+
+let destinoFoto = null;                  // { cid } (una cosa) o { barra: 'lista' | 'grupo' } (lo que se va a apuntar).
+const fotosDeBarra = { lista: null, grupo: null };
+const camaraDe = barra => (barra === 'grupo' ? el.fotoNuevaGrupo : el.fotoNueva);
+let fotoEnHoja = null;                   // { lista, cid, v, abridor } de la que enseña su hoja.
+const grandes = new Map();               // Las grandes ya leídas en esta visita: cid → { v, datos, por }.
+
+function elegirFoto(destino) {
+  destinoFoto = destino;
+  el.elegirFoto.value = '';
+  el.elegirFoto.click();
+}
+
+function ponerFotoEnBarra(barra, foto) {
+  fotosDeBarra[barra] = foto;
+  const camara = camaraDe(barra);
+  camara.classList.toggle('con-foto', !!foto);
+  camara.setAttribute('aria-label', foto ? 'Quitar la foto' : 'Añadir foto');
+  const imagen = camara.querySelector('img');
+  imagen.hidden = !foto;
+  if (foto) imagen.src = foto.mini; else imagen.removeAttribute('src');
+}
+
+/* Devuelve la foto puesta en la barra (o null) y la deja libre. */
+function soltarFotoDeBarra(barra) {
+  const foto = fotosDeBarra[barra];
+  if (foto) ponerFotoEnBarra(barra, null);
+  return foto;
+}
+
+for (const barra of ['lista', 'grupo']) {
+  camaraDe(barra).addEventListener('click', () => {
+    if (fotosDeBarra[barra]) ponerFotoEnBarra(barra, null);
+    else elegirFoto({ barra });
+  });
+}
+
+el.elegirFoto.addEventListener('change', async () => {
+  const archivo = el.elegirFoto.files && el.elegirFoto.files[0];
+  const destino = destinoFoto;
+  const id = listaId;
+  destinoFoto = null;
+  if (!archivo || !destino) return;
+  let foto;
+  try { foto = await prepararFoto(archivo); }
+  catch (e) { console.warn('Foto', e); toast('No se ha podido usar esa foto.'); return; }
+  finally { el.elegirFoto.value = ''; }
+  if (listaId !== id) return; // Se ha salido de la lista mientras tanto.
+  if (destino.barra) { ponerFotoEnBarra(destino.barra, foto); return; }
+  if (!cosasActuales.has(destino.cid)) return; // La han borrado mientras tanto.
+  try {
+    await almacen.ponerFoto(id, destino.cid, foto);
+    grandes.set(destino.cid, { v: foto.v, datos: foto.datos });
+  } catch (e) { console.warn('Foto', e); toast('No se pudo guardar la foto.'); }
+});
+
+/* La cámara de una fila: lo escrito se guarda y se elige la foto. */
+function elegirFotoParaCosa(cid) {
+  const fila = filas.get(cid) || filasMiembro.get(cid);
+  if (fila) fila.classList.remove('escribiendo');
+  acabarEdicion();
+  elegirFoto({ cid });
+}
+
+/* La grande de una cosa: la ya leída o la de Firestore. null si no está (o es de otra foto). */
+async function fotoGrande(id, cid, v) {
+  const leida = grandes.get(cid);
+  if (leida && leida.v === v) return leida;
+  const grande = await almacen.leerFoto(id, cid).catch(() => null);
+  if (!grande || grande.v !== v) return null;
+  grandes.set(cid, grande);
+  return grande;
+}
+
+async function abrirHojaFoto(cid, abridor) {
+  const c = cosasActuales.get(cid);
+  const foto = c && fotoDe(c.foto);
+  if (!foto || document.querySelector('.hoja.abierta')) return;
+  const id = listaId;
+  fotoEnHoja = { lista: id, cid, v: foto.v, abridor };
+  el.tituloHojaFoto.textContent = c.texto;
+  el.imagenHojaFoto.alt = `Foto de «${c.texto}»`;
+  el.imagenHojaFoto.style.aspectRatio = `${foto.ancho} / ${foto.alto}`;
+  el.imagenHojaFoto.src = foto.mini;
+  el.imagenHojaFoto.dataset.tamano = 'pequena';
+  el.notaHojaFoto.hidden = true;
+  abrirPanel(el.hojaFoto, '#titulo-hoja-foto');
+  const grande = await fotoGrande(id, cid, foto.v);
+  if (!fotoEnHoja || fotoEnHoja.cid !== cid || fotoEnHoja.v !== foto.v || !el.hojaFoto.classList.contains('abierta')) return;
+  if (grande) {
+    el.imagenHojaFoto.src = grande.datos;
+    el.imagenHojaFoto.dataset.tamano = 'grande';
+  } else {
+    el.notaHojaFoto.textContent = 'La foto en grande aún no ha llegado. Prueba otra vez con conexión.';
+    el.notaHojaFoto.hidden = false;
+  }
+}
+
+/* Al cerrarse la hoja de la foto (cerrarHoja): se vacía y, si toca, el foco vuelve a la foto de la fila. */
+function soltarHojaFoto(devolverFoco) {
+  const abridor = fotoEnHoja && fotoEnHoja.abridor;
+  fotoEnHoja = null;
+  el.imagenHojaFoto.removeAttribute('src');
+  delete el.imagenHojaFoto.dataset.tamano;
+  if (devolverFoco && abridor && abridor.isConnected && !abridor.hidden) abridor.focus({ preventScroll: true });
+}
+
+el.cambiarFoto.addEventListener('click', () => {
+  if (!fotoEnHoja) return;
+  const { cid } = fotoEnHoja;
+  cerrarHoja();
+  elegirFoto({ cid });
+});
+
+el.quitarFoto.addEventListener('click', async () => {
+  if (!fotoEnHoja) return;
+  const { lista: id, cid } = fotoEnHoja;
+  const c = cosasActuales.get(cid);
+  const foto = c && fotoDe(c.foto);
+  fotoEnHoja.abridor = null; // Su foto se va: el foco, al check de la fila.
+  cerrarHoja();
+  const check = (filas.get(cid) || filasMiembro.get(cid))?.querySelector('.hecho');
+  if (check) check.focus({ preventScroll: true });
+  if (!foto) return;
+  try {
+    const previa = await almacen.quitarFoto(id, cid, foto);
+    toast('Foto quitada', previa ? {
+      icono: true, accion: 'Deshacer',
+      alAccionar: () => { if (listaId === id && cosasActuales.has(cid)) almacen.ponerFoto(id, cid, previa).catch(() => toast('No se pudo recuperar.')); }
+    } : { icono: true });
+  } catch (e) { console.warn('Foto', e); toast('No se pudo quitar la foto.'); }
 });
 
 /* ---------- Barra «Crear grupo de cosas» ----------
@@ -1228,8 +1407,9 @@ function mostrarLaLista() {
   const venia = raiz.dataset.vista === 'grupo' ? grupoAbierto : null;
   cerrarCandidatas();
   grupoAbierto = null;
-  el.campoCosaGrupo.value = ''; // Lo que quedó a medio escribir era para ese grupo.
+  el.campoCosaGrupo.value = ''; // Lo que quedó a medio escribir (y su foto) era para ese grupo.
   el.enviarGrupo.disabled = true;
+  soltarFotoDeBarra('grupo');
   mostrar('lista');
   if (lista) pintarLista(lista);
   pintarNivel(false);
@@ -1247,6 +1427,7 @@ function mostrarGrupo(gid) {
     el.cosasGrupo.innerHTML = '';
     el.campoCosaGrupo.value = '';
     el.enviarGrupo.disabled = true;
+    soltarFotoDeBarra('grupo');
   }
   grupoAbierto = gid;
   mostrar('grupo');
@@ -1348,6 +1529,8 @@ el.cosasGrupo.addEventListener('click', ev => {
   const c = cosasActuales.get(li.dataset.id);
   if (!c) return;
   if (boton.dataset.accion === 'alternar') { alternar(li, c); return; }
+  if (boton.dataset.accion === 'poner-foto') { elegirFotoParaCosa(c.id); return; }
+  if (boton.dataset.accion === 'ver-foto') { abrirHojaFoto(c.id, boton); return; }
   if (boton.dataset.accion !== 'quitar' || performance.now() - ultimoMovimiento < GUARDA_DOBLE_TOQUE) return;
   /* «−»: la cosa vuelve a la lista, con «Deshacer» mientras se ve el aviso. */
   const id = listaId;
@@ -1367,11 +1550,16 @@ el.formCosaGrupo.addEventListener('submit', async ev => {
   ev.preventDefault();
   const texto = limpiar(el.campoCosaGrupo.value, 500);
   if (!texto || !listaId || !grupoAbierto) return;
+  const foto = soltarFotoDeBarra('grupo');
   el.campoCosaGrupo.value = '';
   el.enviarGrupo.disabled = true;
   el.campoCosaGrupo.focus();
-  try { await almacen.anadirCosa(listaId, texto, grupoAbierto); }
-  catch (e) { console.error(e); toast('No se pudo guardar.'); el.campoCosaGrupo.value = texto; el.enviarGrupo.disabled = false; }
+  try { await almacen.anadirCosa(listaId, texto, grupoAbierto, foto); }
+  catch (e) {
+    console.error(e); toast(foto ? 'No se pudo guardar con la foto.' : 'No se pudo guardar.');
+    el.campoCosaGrupo.value = texto; el.enviarGrupo.disabled = false;
+    if (foto) ponerFotoEnBarra('grupo', foto);
+  }
 });
 
 /* ---------- Editar un grupo de cosas (hoja): nombre y color ---------- */
@@ -1570,6 +1758,7 @@ function cerrarHoja() {
   if (colorPrevisualizado && lista) { colorPrevisualizado = null; pintarColor(lista.color || '#2F6FED'); }
   colorPrevisualizado = null;
   if (abierta === el.hojaCuenta) el.abrirCuenta.focus({ preventScroll: true });
+  if (abierta === el.hojaFoto) soltarHojaFoto(true);
   /* Al cerrar la hoja de un grupo sin guardar, vuelve su color (se veía el elegido). */
   if (abierta === el.hojaGrupo && raiz.dataset.vista === 'grupo') {
     pintarPaginaGrupo(false);

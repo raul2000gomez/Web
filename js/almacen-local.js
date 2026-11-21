@@ -9,6 +9,7 @@ const CLAVE = 'cosascon:local:v1';
 const CLAVE_UID = 'cosascon:uid';
 
 function ahora() { return Date.now(); }
+const resumen = foto => ({ v: foto.v, mini: foto.mini, ancho: foto.ancho, alto: foto.alto });
 
 export function crearAlmacenLocal() {
   let datos = local.leer(CLAVE, { listas: {} });
@@ -37,7 +38,7 @@ export function crearAlmacenLocal() {
 
   function publica(lista) {
     if (!lista) return null;
-    const { cosas, grupos, ...resto } = lista;
+    const { cosas, grupos, fotos, ...resto } = lista;
     return { ...resto };
   }
 
@@ -129,13 +130,38 @@ export function crearAlmacenLocal() {
       return () => oyentesMias.delete(cb);
     },
 
-    async anadirCosa(id, texto, grupo = null) {
+    async anadirCosa(id, texto, grupo = null, foto = null) {
       const l = datos.listas[id];
       if (!l) throw new Error('no-existe');
       const cid = idNuevo(14);
-      l.cosas[cid] = { id: cid, texto, hecha: false, creada: ahora(), hechaEn: null, por: uid, grupo: grupo || null };
+      l.cosas[cid] = { id: cid, texto, hecha: false, creada: ahora(), hechaEn: null, por: uid, grupo: grupo || null, ...(foto ? { foto: resumen(foto) } : {}) };
+      if (foto) (l.fotos = l.fotos || {})[cid] = { v: foto.v, datos: foto.datos, por: uid };
       guardar();
       return cid;
+    },
+
+    /* La foto grande de una cosa (en modo local, con las cosas: solo para probar, no da para muchas). */
+    async leerFoto(id, cid) {
+      const f = datos.listas[id]?.fotos?.[cid];
+      return f ? { ...f } : null;
+    },
+
+    async ponerFoto(id, cid, foto) {
+      const l = datos.listas[id];
+      if (!l || !l.cosas[cid]) return;
+      (l.fotos = l.fotos || {})[cid] = { v: foto.v, datos: foto.datos, por: foto.por || uid };
+      l.cosas[cid].foto = resumen(foto);
+      guardar();
+    },
+
+    async quitarFoto(id, cid, foto) {
+      const l = datos.listas[id];
+      if (!l || !l.cosas[cid]) return null;
+      const grande = l.fotos?.[cid] || null;
+      if (l.fotos) delete l.fotos[cid];
+      l.cosas[cid].foto = null;
+      guardar();
+      return grande && foto && grande.v === foto.v ? { ...resumen(foto), datos: grande.datos, por: grande.por } : null;
     },
 
     /* Sin nube no hay nadie más: nunca hay novedades. */
@@ -193,10 +219,12 @@ export function crearAlmacenLocal() {
       guardar();
     },
 
-    async restaurarCosa(id, cosa) {
+    async restaurarCosa(id, cosa, grande = null) {
       const l = datos.listas[id];
       if (!l) return;
-      l.cosas[cosa.id] = { ...cosa };
+      const conFoto = grande && cosa.foto && cosa.foto.v === grande.v;
+      l.cosas[cosa.id] = { ...cosa, foto: conFoto ? cosa.foto : null };
+      if (conFoto) (l.fotos = l.fotos || {})[cosa.id] = { ...grande };
       guardar();
     },
 
@@ -217,9 +245,12 @@ export function crearAlmacenLocal() {
 
     async borrarCosa(id, cid) {
       const l = datos.listas[id];
-      if (!l || !l.cosas[cid]) return;
+      if (!l || !l.cosas[cid]) return null;
+      const grande = l.fotos?.[cid] || null;
       delete l.cosas[cid];
+      if (l.fotos) delete l.fotos[cid];
       guardar();
+      return grande ? { ...grande } : null;
     },
 
     async actualizarLista(id, cambios) {
