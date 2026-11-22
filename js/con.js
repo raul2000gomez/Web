@@ -26,6 +26,7 @@ const el = {
   cosasGrupo: $('#cosas-grupo'), grupoVacio: $('#grupo-vacio'),
   candidatas: $('#candidatas'), listaCandidatas: $('#lista-candidatas'), sinCandidatas: $('#sin-candidatas'), anadirCosas: $('#anadir-cosas'),
   formCosaGrupo: $('#form-cosa-grupo'), campoCosaGrupo: $('#campo-cosa-grupo'), enviarGrupo: $('#enviar-grupo'),
+  dictar: $('#dictar'), dictarGrupo: $('#dictar-grupo'), notaDictado: $('#nota-dictado'),
   hojaGrupo: $('#hoja-grupo'), formEditarGrupo: $('#form-editar-grupo'), nombreGrupo: $('#nombre-grupo'), coloresGrupo: $('#colores-grupo'),
   hoja: $('#hoja'), formAjustes: $('#form-ajustes'),
   ajusteNombre: $('#ajuste-nombre'), ajusteColores: $('#ajuste-colores'), ajusteMiNombre: $('#ajuste-mi-nombre'),
@@ -192,6 +193,7 @@ function mostrar(nombre) {
 
 async function enrutar() {
   acabarEdicion(); // Lo que se estaba escribiendo en una fila se guarda antes de que deje de verse.
+  cancelarDictado(); // Y lo que se dictaba en una barra se queda en ella, sin seguir escuchando.
   cerrarHoja();
   const id = idDeUrl();
   /* La misma lista, ya abierta: solo se pasa de la lista a uno de sus grupos o al revés. */
@@ -687,6 +689,7 @@ function abrirLista(id, datos) {
 
 function cerrarLista() {
   acabarEdicion();
+  cancelarDictado();
   if (pararLista) { pararLista(); pararLista = null; }
   if (pararCosas) { pararCosas(); pararCosas = null; }
   if (pararGrupos) { pararGrupos(); pararGrupos = null; }
@@ -844,6 +847,7 @@ for (const contenedor of [el.cosas, el.cosasGrupo]) {
     if (!cosasActuales.has(id)) return;
     edicion = { lista: listaId, id, texto: ev.target, escrito: false };
     raiz.setAttribute('data-editando', '');
+    cancelarDictado(); // La barra se aparta: lo dictado se queda en ella, sin seguir escuchando.
     ev.target.closest('.fila').classList.add('escribiendo'); // Con la cámara al lado (con.css).
   });
   /* Si el foco va del texto a la cámara de su fila (el tabulador lleva ahí), la fila sigue marcada: si no, la
@@ -1181,23 +1185,245 @@ el.cosas.addEventListener('click', ev => {
   if (accion === 'ver-foto') abrirHojaFoto(c.id, boton);
 });
 
-el.campoCosa.addEventListener('input', () => { el.enviar.disabled = !limpiar(el.campoCosa.value, 500); });
+/* ---------- Las barras de escribir una cosa (la de la lista y la de la página de un grupo) ----------
+   Como en la app, el final de cada barra es un solo hueco: el micrófono con el campo vacío (o mientras escucha)
+   y enviar en cuanto hay texto. Nunca los dos a la vez; el que no toca está desactivado, y no se ve (con.css). */
 
-el.formCosa.addEventListener('submit', async ev => {
+const escrituras = {
+  lista: { nombre: 'lista', campo: el.campoCosa, enviar: el.enviar, micro: el.dictar, dictado: false },
+  grupo: { nombre: 'grupo', campo: el.campoCosaGrupo, enviar: el.enviarGrupo, micro: el.dictarGrupo, dictado: false }
+};
+for (const barra of Object.values(escrituras)) {
+  barra.pildora = barra.campo.closest('.pildora');
+  barra.marcador = barra.campo.placeholder;
+}
+
+/* ---------- Dictado ----------
+   Se toca el micrófono y lo que se dice va apareciendo en el campo; al callar, se queda ahí para revisarlo y se
+   guarda con enviar (o se corrige a mano). Es el reconocimiento de voz del navegador (Chrome, Safari, Edge…): si
+   no lo tiene, como Firefox, no hay micrófono. Lo mismo que la app (app/app.js del repositorio cosas). */
+
+const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
+// Tras stop(), el navegador entrega lo reconocido y avisa con «end»; si no lo hace, se corta.
+const ESPERA_FIN_DICTADO = 2500;
+// Cuando el dictado acaba por su cuenta, enviar aparece donde estaba el micrófono: el toque que iba a detenerlo
+// no debe guardar lo dictado sin haberlo leído (reaccionar lleva más que un doble toque).
+const GUARDA_FIN_DICTADO = 500;
+// Tras guardar, el micrófono vuelve bajo el dedo: el segundo toque de un doble toque (GUARDA_DOBLE_TOQUE, arriba)
+// no empieza a dictar.
+const AVISOS_DICTADO = new Map([
+  ['not-allowed', 'Permite el micrófono para dictar'],
+  ['no-speech', 'No te he oído'],
+  ['network', 'El dictado necesita conexión'],
+  ['audio-capture', 'No encuentro el micrófono']
+]);
+
+let reconocimiento = null;     // Como mucho hay uno vivo.
+let dictando = null;           // La barra en la que escribe.
+let parandoDictado = false;    // Ya se le ha pedido stop(): solo queda esperar su «end».
+let inicioDictado = -Infinity;
+let finDictado = -Infinity;    // Último dictado que acabó por su cuenta (final, error o corte por espera).
+let ultimoEnvio = -Infinity;
+let temporizadorDictado = 0;
+
+/** ¿Tiene el foco por el teclado? (Safari anterior a 15.4 no conoce :focus-visible.) */
+function conFocoVisible(elemento) {
+  try { return elemento.matches(':focus-visible'); } catch (e) { return false; }
+}
+
+function actualizarBarra(barra) {
+  const escuchando = reconocimiento !== null && dictando === barra;
+  const conTexto = limpiar(barra.campo.value, 500) !== '';
+  const focoEnMicro = document.activeElement === barra.micro;
+  barra.enviar.disabled = escuchando || !conTexto;
+  barra.micro.disabled = conTexto && !escuchando;
+  barra.micro.setAttribute('aria-pressed', String(escuchando));
+  barra.micro.setAttribute('aria-label', escuchando ? 'Detener dictado' : 'Dictar');
+  barra.pildora.classList.toggle('escuchando', escuchando);
+  barra.campo.placeholder = escuchando ? 'Te escucho…' : barra.marcador;
+  if (!focoEnMicro || escuchando) return;
+  // Al acabar de dictar, el foco puesto con el dedo se suelta: la barra en reposo no se queda resaltada.
+  // El puesto con el teclado se conserva y, sin micrófono, pasa a enviar.
+  if (!conFocoVisible(barra.micro)) barra.micro.blur();
+  else if (barra.micro.disabled) barra.enviar.focus({ preventScroll: true });
+}
+
+/** Deja la barra vacía, sin dictado ni foto: lo que quedó a medio escribir era para otro grupo. */
+function vaciarBarra(nombre) {
+  const barra = escrituras[nombre];
+  if (dictando === barra) cancelarDictado();
+  barra.campo.value = '';
+  barra.dictado = false;
+  soltarFotoDeBarra(nombre);
+  actualizarBarra(barra);
+}
+
+/** Lo reconocido, listo para el campo: espacios simples, mayúscula inicial y sin pasar del máximo. */
+function textoDictado(bruto) {
+  const texto = bruto.replace(/\s+/g, ' ').trim();
+  return (texto.charAt(0).toLocaleUpperCase('es-ES') + texto.slice(1)).slice(0, 500).trim();
+}
+
+/** Lo que se va entendiendo se escribe en vivo; al terminar queda el texto definitivo. */
+function alResultadoDictado(evento) {
+  const trozos = Array.from(evento.results, resultado => resultado[0].transcript);
+  dictando.campo.value = textoDictado(trozos.join(' '));
+  dictando.dictado = true;
+  // El campo no tiene el foco y no sigue al texto por sí solo: se enseña lo último que se ha entendido.
+  dictando.campo.scrollLeft = dictando.campo.scrollWidth;
+}
+
+function alErrorDictado(evento) {
+  acabarDictado(true);
+  if (evento.error === 'service-not-allowed') avisarDictadoNoDisponible();
+  // «aborted» es un corte (propio o del sistema), no un fallo que haya que contar.
+  else if (evento.error !== 'aborted') toast(AVISOS_DICTADO.get(evento.error) || 'No se ha podido dictar');
+}
+
+/**
+ * «service-not-allowed»: el servicio de voz del sistema no está disponible (no es el permiso del micrófono). En la
+ * app instalada en iPhone o iPad no lo está nunca: allí el micrófono se retira hasta la próxima vez y queda el
+ * dictado del teclado. En los demás casos suele ser un ajuste del dispositivo o del navegador.
+ */
+function avisarDictadoNoDisponible() {
+  if (window.navigator.standalone !== true) {
+    const donde = window.matchMedia('(pointer: coarse)').matches ? 'revisa los ajustes del móvil' : 'revisa los ajustes del navegador';
+    toast(`El dictado no está disponible: ${donde}`, { duracion: 4000 });
+    return;
+  }
+  toast('Aquí no se puede dictar: usa el micrófono del teclado', { duracion: 4000 });
+  for (const barra of Object.values(escrituras)) {
+    if (document.activeElement === barra.micro) barra.campo.focus({ preventScroll: true }); // El foco no se queda en un botón que desaparece.
+    barra.micro.hidden = true;
+  }
+  el.notaDictado.hidden = true;
+}
+
+/** Suelta el reconocimiento (sin oyentes no queda nada vivo) y devuelve la barra al reposo. */
+function soltarDictado(abortar) {
+  if (!reconocimiento) return;
+  const usado = reconocimiento;
+  const barra = dictando;
+  reconocimiento = null;
+  dictando = null;
+  parandoDictado = false;
+  clearTimeout(temporizadorDictado);
+  usado.removeEventListener('result', alResultadoDictado);
+  usado.removeEventListener('error', alErrorDictado);
+  usado.removeEventListener('end', terminarDictado);
+  if (abortar) {
+    try { usado.abort(); } catch (e) { /* Ya había terminado. */ }
+  }
+  // Lo dictado se revisa desde el principio (si el corte viene de teclear, el cursor manda).
+  if (document.activeElement !== barra.campo) barra.campo.scrollLeft = 0;
+  actualizarBarra(barra);
+}
+
+/**
+ * El dictado acaba por su cuenta (final, error o corte por espera): el hueco cambia de botón sin que nadie lo haya
+ * tocado, y el toque que llegue enseguida todavía iba dirigido al micrófono que escuchaba.
+ */
+function acabarDictado(abortar) {
+  soltarDictado(abortar);
+  finDictado = performance.now();
+}
+
+/** Fin natural: el texto reconocido se queda en el campo y se confirma con enviar. */
+function terminarDictado() {
+  acabarDictado(false);
+}
+
+/** Corte silencioso porque ya se está en otra cosa: cambio de vista, página oculta, envío, tecleo o una fila. */
+function cancelarDictado() {
+  soltarDictado(true);
+}
+
+function empezarDictado(barra) {
+  barra.campo.blur(); // Dictar no abre el teclado (y lo cierra si estaba abierto).
+  try {
+    reconocimiento = new Reconocimiento();
+    dictando = barra;
+    reconocimiento.lang = 'es-ES';
+    reconocimiento.interimResults = true;
+    reconocimiento.continuous = false;
+    reconocimiento.maxAlternatives = 1;
+    reconocimiento.addEventListener('result', alResultadoDictado);
+    reconocimiento.addEventListener('error', alErrorDictado);
+    reconocimiento.addEventListener('end', terminarDictado);
+    reconocimiento.start();
+  } catch (e) {
+    // start() lanza InvalidStateError si el navegador aún no ha soltado un reconocimiento anterior.
+    cancelarDictado();
+    toast('No se ha podido dictar');
+    return;
+  }
+  inicioDictado = performance.now();
+  actualizarBarra(barra);
+}
+
+function alPulsarMicro(barra) {
+  const ahora = performance.now();
+  if (!reconocimiento) {
+    // El micrófono en reposo acaba de aparecer bajo el dedo (tras guardar, o tras un dictado que se quedó sin
+    // texto): el segundo toque de un doble toque no empieza a dictar.
+    if (ahora - ultimoEnvio < GUARDA_DOBLE_TOQUE || ahora - finDictado < GUARDA_DOBLE_TOQUE) return;
+    empezarDictado(barra);
+    return;
+  }
+  if (dictando !== barra) return; // Escucha la otra barra (que no se ve): este toque no la detiene.
+  // El segundo toque de un doble toque no es un «detener»; y quien insiste mientras para no alarga la espera.
+  if (ahora - inicioDictado < GUARDA_DOBLE_TOQUE || parandoDictado) return;
+  parandoDictado = true;
+  try {
+    reconocimiento.stop(); // Entrega lo reconocido hasta ahora y después avisa con «end».
+  } catch (e) { /* Ya estaba parando. */ }
+  temporizadorDictado = setTimeout(acabarDictado, ESPERA_FIN_DICTADO, true);
+}
+
+/* Guarda lo escrito (o dictado) como una cosa: en la página de un grupo, dentro de él. */
+async function alEnviar(ev, barra) {
   ev.preventDefault();
-  const texto = limpiar(el.campoCosa.value, 500);
-  if (!texto || !listaId) return;
-  const foto = soltarFotoDeBarra('lista');
-  el.campoCosa.value = '';
-  el.enviar.disabled = true;
-  el.campoCosa.focus();
-  try { await almacen.anadirCosa(listaId, texto, null, foto); }
+  // Enviar acaba de ocupar el sitio del micrófono que escuchaba: ese toque (o Intro) era un «detener».
+  if (!reconocimiento && performance.now() - finDictado < GUARDA_FIN_DICTADO) return;
+  cancelarDictado();
+  const texto = limpiar(barra.campo.value, 500);
+  const grupo = barra === escrituras.grupo ? grupoAbierto : null;
+  if (!texto || !listaId || (barra === escrituras.grupo && !grupo)) return;
+  const foto = soltarFotoDeBarra(barra.nombre);
+  const dictado = barra.dictado;
+  barra.campo.value = '';
+  barra.dictado = false;
+  ultimoEnvio = performance.now();
+  actualizarBarra(barra);
+  // Tras escribir, el campo sigue listo para la siguiente; tras dictar en el móvil, no se abre el teclado.
+  if (dictado && !window.matchMedia('(pointer: fine)').matches) barra.campo.blur();
+  else barra.campo.focus();
+  try { await almacen.anadirCosa(listaId, texto, grupo, foto); }
   catch (e) {
     console.error(e); toast(foto ? 'No se pudo guardar con la foto.' : 'No se pudo guardar.');
-    el.campoCosa.value = texto; el.enviar.disabled = false;
-    if (foto) ponerFotoEnBarra('lista', foto);
+    if (dictando === barra) cancelarDictado();
+    barra.campo.value = texto;
+    barra.dictado = dictado;
+    actualizarBarra(barra);
+    if (foto) ponerFotoEnBarra(barra.nombre, foto);
   }
-});
+}
+
+for (const barra of Object.values(escrituras)) {
+  barra.campo.addEventListener('input', () => {
+    cancelarDictado(); // Quien teclea ya no dicta; lo reconocido hasta ahora se queda en el campo.
+    barra.dictado = false;
+    actualizarBarra(barra);
+  });
+  barra.micro.addEventListener('click', () => alPulsarMicro(barra));
+  barra.campo.form.addEventListener('submit', ev => alEnviar(ev, barra));
+  barra.micro.hidden = !Reconocimiento;
+  actualizarBarra(barra);
+}
+el.notaDictado.hidden = !Reconocimiento;
+// Si la página se va (o pasa a segundo plano), se deja de escuchar: lo dictado se queda en la barra.
+window.addEventListener('pagehide', cancelarDictado);
+document.addEventListener('visibilitychange', () => { if (document.hidden) cancelarDictado(); });
 
 /* ---------- Fotos: una en cada cosa (js/fotos.js) ----------
    La pequeña va en la cosa y se ve en su fila; la grande se lee al tocarla, en su hoja. Se pone desde la
@@ -1407,9 +1633,7 @@ function mostrarLaLista() {
   const venia = raiz.dataset.vista === 'grupo' ? grupoAbierto : null;
   cerrarCandidatas();
   grupoAbierto = null;
-  el.campoCosaGrupo.value = ''; // Lo que quedó a medio escribir (y su foto) era para ese grupo.
-  el.enviarGrupo.disabled = true;
-  soltarFotoDeBarra('grupo');
+  vaciarBarra('grupo'); // Lo que quedó a medio escribir (y su foto) era para ese grupo.
   mostrar('lista');
   if (lista) pintarLista(lista);
   pintarNivel(false);
@@ -1425,9 +1649,7 @@ function mostrarGrupo(gid) {
     cerrarCandidatas();
     filasMiembro.clear();
     el.cosasGrupo.innerHTML = '';
-    el.campoCosaGrupo.value = '';
-    el.enviarGrupo.disabled = true;
-    soltarFotoDeBarra('grupo');
+    vaciarBarra('grupo');
   }
   grupoAbierto = gid;
   mostrar('grupo');
@@ -1541,25 +1763,6 @@ el.cosasGrupo.addEventListener('click', ev => {
     icono: true, accion: 'Deshacer',
     alAccionar: () => { if (gruposActuales.has(gid)) almacen.moverCosa(id, c.id, gid).catch(() => toast('No se pudo deshacer.')); }
   });
-});
-
-el.campoCosaGrupo.addEventListener('input', () => { el.enviarGrupo.disabled = !limpiar(el.campoCosaGrupo.value, 500); });
-
-/* Lo que se escribe en la página de un grupo entra en él. */
-el.formCosaGrupo.addEventListener('submit', async ev => {
-  ev.preventDefault();
-  const texto = limpiar(el.campoCosaGrupo.value, 500);
-  if (!texto || !listaId || !grupoAbierto) return;
-  const foto = soltarFotoDeBarra('grupo');
-  el.campoCosaGrupo.value = '';
-  el.enviarGrupo.disabled = true;
-  el.campoCosaGrupo.focus();
-  try { await almacen.anadirCosa(listaId, texto, grupoAbierto, foto); }
-  catch (e) {
-    console.error(e); toast(foto ? 'No se pudo guardar con la foto.' : 'No se pudo guardar.');
-    el.campoCosaGrupo.value = texto; el.enviarGrupo.disabled = false;
-    if (foto) ponerFotoEnBarra('grupo', foto);
-  }
 });
 
 /* ---------- Editar un grupo de cosas (hoja): nombre y color ---------- */

@@ -16,6 +16,10 @@ escribir (para lo que se va a apuntar) o con la de la fila (sale mientras se esc
 foto). Se ve en pequeño en la fila y, al tocarla, en grande, con «Cambiar foto» y «Quitar foto». La
 pequeña va en la cosa; la grande, en `listas/{id}/fotos/{cosa}` (`js/fotos.js`). Las fotos necesitan las
 reglas de `firestore.rules` de después de las fotos: sin ellas, Firestore no deja guardarlas.
+También se pueden **dictar** las cosas, como en la app: con el campo vacío, al final de la barra de
+escribir hay un micrófono; lo que se dice va apareciendo en el campo y, al callar, se queda ahí para
+revisarlo y guardarlo con la flecha. Usa el reconocimiento de voz del navegador (Chrome, Safari, Edge…);
+si no lo tiene, como Firefox, no hay micrófono.
 
 Tienen el aspecto de la app, como su pantalla de lista: fondo de color, flecha y título arriba, tus
 conexiones como filas en píldora y, abajo, un botón **Añadir cosas con** (o **Añadir cosas de**) que

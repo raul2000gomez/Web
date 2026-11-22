@@ -421,10 +421,69 @@ body {
   transition: opacity .15s ease, transform .15s ease, visibility 0s;
 }
 
+.micro:active,
 .enviar:active,
 .confirmar:active { transform: scale(.94); }
 
+/* El final de la barra de escribir una cosa es un solo hueco, como en la app: el micrófono con el campo vacío
+   (o mientras escucha) y enviar en cuanto hay texto. Nunca los dos a la vez. */
+.ranura {
+  flex: none;
+  display: grid;
+  width: 44px;
+  height: 44px;
+}
+
+.ranura > .micro,
+.ranura > .enviar { grid-area: 1 / 1; }
+
+/* En reposo el micrófono es solo su icono. Escuchando, tras el icono aparece un disco relleno que late despacio:
+   late el disco, no el botón, y la zona de toque no se mueve. */
+.micro {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--tinta-l);
+  transition: opacity .15s ease, transform .15s ease, visibility 0s, color .15s ease;
+}
+
+.micro[hidden] { display: none; }
+
+.micro::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--tinta-l);
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+
+.micro svg { position: relative; }
+
+.micro[aria-pressed="true"] { color: var(--fondo); }
+
+.micro[aria-pressed="true"]::before {
+  opacity: 1;
+  animation: latir 1.6s ease-in-out infinite;
+}
+
+@keyframes latir { 50% { transform: scale(.88); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .micro[aria-pressed="true"]::before { animation: none; }
+}
+
+/* Mientras escucha, la píldora lleva el aro de cuando se escribe, y se ve el final de lo dictado (con.js lo desplaza):
+   los puntos suspensivos lo taparían. */
+.pildora.escuchando { box-shadow: inset 0 0 0 2px var(--tinta-l); }
+.pildora.escuchando .campo { text-overflow: clip; }
+
 /* Sin texto en el campo, el botón del final no se ve (y sale del tabulador). */
+.micro:disabled,
 .enviar:disabled,
 .confirmar:disabled {
   visibility: hidden;
@@ -1094,6 +1153,8 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
 }
+
+.nota-dictado { margin-top: 18px; }
 
 .hoja-nota code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;

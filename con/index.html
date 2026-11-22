@@ -44,7 +44,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <!-- GitHub Pages guarda CSS y JS en caché 10 minutos: al cambiar con.css o con.js, sube el ?v=
        (aquí y en de/index.html) para que nadie mezcle una página nueva con archivos viejos. -->
-  <link rel="stylesheet" href="../css/con.css?v=11">
+  <link rel="stylesheet" href="../css/con.css?v=12">
 </head>
 <body>
 
@@ -135,7 +135,12 @@
           <div class="pildora">
             <input class="campo" id="campo-cosa" type="text" name="cosa" placeholder="Escribe una cosa…" aria-label="Escribe una cosa" maxlength="500" autocapitalize="sentences" enterkeyhint="done">
             <button type="button" class="foto-barra" id="foto-nueva" aria-label="Añadir foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h1.9l1.5-2.2h5.2L16.1 6H18a2.5 2.5 0 0 1 2.5 2.5v8.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.6" r="3.6"/></svg><img alt="" hidden></button>
-            <button type="submit" class="enviar" id="enviar" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+            <!-- Micrófono y enviar comparten hueco, como en la app: el micrófono con el campo vacío, enviar con texto.
+                 Solo aparece si el navegador sabe reconocer la voz (lo decide con.js). -->
+            <div class="ranura">
+              <button type="button" class="micro" id="dictar" aria-label="Dictar" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></button>
+              <button type="submit" class="enviar" id="enviar" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+            </div>
           </div>
         </form>
       </div>
@@ -164,7 +169,12 @@
           <div class="pildora">
             <input class="campo" id="campo-cosa-grupo" type="text" name="cosa" placeholder="Escribe una cosa…" aria-label="Escribe una cosa en este grupo" maxlength="500" autocapitalize="sentences" enterkeyhint="done">
             <button type="button" class="foto-barra" id="foto-nueva-grupo" aria-label="Añadir foto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h1.9l1.5-2.2h5.2L16.1 6H18a2.5 2.5 0 0 1 2.5 2.5v8.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 17z"/><circle cx="12" cy="12.6" r="3.6"/></svg><img alt="" hidden></button>
-            <button type="submit" class="enviar" id="enviar-grupo" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+            <!-- Micrófono y enviar comparten hueco, como en la app: el micrófono con el campo vacío, enviar con texto.
+                 Solo aparece si el navegador sabe reconocer la voz (lo decide con.js). -->
+            <div class="ranura">
+              <button type="button" class="micro" id="dictar-grupo" aria-label="Dictar" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3"/></svg></button>
+              <button type="submit" class="enviar" id="enviar-grupo" aria-label="Guardar" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+            </div>
           </div>
         </form>
       </div>
@@ -226,6 +236,7 @@
         <button type="button" class="boton-ancho" id="salir-cuenta" hidden>Cerrar sesión</button>
         <a class="boton-ancho" id="ir-otro" href="../de/">Ir a Cosas de</a>
       </div>
+      <p class="hoja-nota nota-dictado" id="nota-dictado" hidden>El dictado usa el reconocimiento de voz del navegador, que puede enviar el audio a Google o Apple.</p>
     </section>
   </div>
 
@@ -311,6 +322,6 @@
   <noscript><p style="padding:24px;text-align:center">Cosas con necesita JavaScript para funcionar.</p></noscript>
 
   <script src="../firebase-config.js"></script>
-  <script type="module" src="../js/con.js?v=13"></script>
+  <script type="module" src="../js/con.js?v=14"></script>
 </body>
 </html>
